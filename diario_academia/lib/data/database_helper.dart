@@ -27,14 +27,14 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    // Tabela de Exercícios
+    // Tabela de Exercícios (Atualizada com imagePath e isActive)
     await db.execute('''
       CREATE TABLE exercises (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         muscleGroup TEXT NOT NULL,
-        equipment TEXT NOT NULL,
-        category TEXT NOT NULL
+        imagePath TEXT,
+        isActive INTEGER NOT NULL DEFAULT 1
       )
     ''');
 
@@ -68,12 +68,13 @@ class DatabaseHelper {
       )
     ''');
 
-    // Tabela de Séries
+    // Tabela de Séries (Atualizada com exerciseNameSnapshot)
     await db.execute('''
       CREATE TABLE workout_sets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         workoutId INTEGER NOT NULL,
         exerciseId INTEGER NOT NULL,
+        exerciseNameSnapshot TEXT,
         weight REAL NOT NULL,
         reps INTEGER NOT NULL,
         isCompleted INTEGER NOT NULL DEFAULT 0,
@@ -86,14 +87,15 @@ class DatabaseHelper {
   }
 
   Future _seedExercises(Database db) async {
+    // Dados iniciais atualizados (sem equipment e category)
     final initialExercises = [
-      {'name': 'Supino Reto', 'muscleGroup': 'Peito', 'equipment': 'Barra', 'category': 'Musculação'},
-      {'name': 'Agachamento Livre', 'muscleGroup': 'Pernas', 'equipment': 'Barra', 'category': 'Musculação'},
-      {'name': 'Levantamento Terra', 'muscleGroup': 'Costas', 'equipment': 'Barra', 'category': 'Musculação'},
-      {'name': 'Leg Press', 'muscleGroup': 'Pernas', 'equipment': 'Máquina', 'category': 'Musculação'},
-      {'name': 'Puxada Frontal', 'muscleGroup': 'Costas', 'equipment': 'Cabo', 'category': 'Musculação'},
-      {'name': 'Rosca Direta', 'muscleGroup': 'Bíceps', 'equipment': 'Halteres', 'category': 'Musculação'},
-      {'name': 'Tríceps na Polia', 'muscleGroup': 'Tríceps', 'equipment': 'Cabo', 'category': 'Musculação'},
+      {'name': 'Supino Reto', 'muscleGroup': 'Peito', 'isActive': 1},
+      {'name': 'Agachamento Livre', 'muscleGroup': 'Pernas', 'isActive': 1},
+      {'name': 'Levantamento Terra', 'muscleGroup': 'Costas', 'isActive': 1},
+      {'name': 'Leg Press', 'muscleGroup': 'Pernas', 'isActive': 1},
+      {'name': 'Puxada Frontal', 'muscleGroup': 'Costas', 'isActive': 1},
+      {'name': 'Rosca Direta', 'muscleGroup': 'Bíceps', 'isActive': 1},
+      {'name': 'Tríceps na Polia', 'muscleGroup': 'Tríceps', 'isActive': 1},
     ];
 
     for (var ex in initialExercises) {

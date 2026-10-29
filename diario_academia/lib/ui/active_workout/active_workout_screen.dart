@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/rest_timer_provider.dart';
+import '../widgets/rest_timer_widget.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
   final Routine routine;
@@ -58,6 +60,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         isCompleted: value == true ? 1 : 0,
       );
     });
+
+    // INSERÇÃO NOVA: Dispara o cronómetro quando a série é concluída
+    if (value == true) {
+      // Inicia um descanso padrão de 90 segundos
+      ref.read(restTimerProvider.notifier).startTimer(90); 
+    }
   }
 
   void _updateSetValues(int exerciseId, int setIndex, double weight, int reps) {
@@ -89,6 +97,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
     ref.invalidate(historyProvider);
     ref.invalidate(volumeProvider);
+    
+    // Para o cronómetro se ainda estiver a correr ao finalizar o treino
+    ref.read(restTimerProvider.notifier).stopTimer();
     
     if (mounted) Navigator.pop(context);
   }
@@ -187,6 +198,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           );
         },
       ),
+      bottomNavigationBar: const RestTimerWidget(),
     );
   }
 }

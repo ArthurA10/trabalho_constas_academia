@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/shell/main_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
-  // O ProviderScope é obrigatório para o Riverpod funcionar e gerir os estados
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Obrigatório antes de inicializar serviços nativos
+  await NotificationService().init(); // Inicializa as notificações
   runApp(const ProviderScope(child: DiarioAcademiaApp()));
 }
 
@@ -18,7 +20,7 @@ class DiarioAcademiaApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blueAccent,
-          brightness: Brightness.dark, // Modo escuro (opcional, pode mudar para light)
+          brightness: Brightness.dark, // Modo escuro
         ),
         useMaterial3: true,
       ),

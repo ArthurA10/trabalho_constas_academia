@@ -36,7 +36,7 @@ class ExercisesScreen extends ConsumerWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: ListTile(
                   title: Text(ex.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${ex.muscleGroup} • ${ex.equipment}'),
+                  subtitle: Text('${ex.muscleGroup}'),
                   trailing: const Icon(Icons.info_outline, color: Colors.grey),
                   onTap: () {
                     // TODO: Abrir detalhes do exercício

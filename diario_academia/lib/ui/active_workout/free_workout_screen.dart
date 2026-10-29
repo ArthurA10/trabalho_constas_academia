@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../routines/select_exercise_screen.dart';
+import '../../providers/rest_timer_provider.dart';
+import '../widgets/rest_timer_widget.dart';
 
 class FreeWorkoutScreen extends ConsumerStatefulWidget {
   const FreeWorkoutScreen({super.key});
@@ -68,6 +70,9 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
     ref.invalidate(historyProvider);
     ref.invalidate(volumeProvider);
 
+    // Garante que o cronómetro para ao finalizar o treino
+    ref.read(restTimerProvider.notifier).stopTimer();
+
     if (mounted) Navigator.pop(context);
   }
 
@@ -129,7 +134,15 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                 ),
                                 Checkbox(
                                   value: currentSet.isCompleted == 1,
-                                  onChanged: (v) => _updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, v == true),
+                                  onChanged: (v) {
+                                    // 1. Atualiza a série
+                                    _updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, v == true);
+                                    
+                                    // 2. Dispara o cronómetro apenas se a caixa for marcada
+                                    if (v == true) {
+                                      ref.read(restTimerProvider.notifier).startTimer(90); 
+                                    }
+                                  },
                                 )
                               ],
                             ),
@@ -151,6 +164,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Exercício'),
       ),
+      bottomNavigationBar: const RestTimerWidget(),
     );
   }
 }
