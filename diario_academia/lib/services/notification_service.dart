@@ -25,21 +25,34 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    // Na versão 17+, initializationSettings passou a ser um parâmetro nomeado
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
     );
+
+    final androidPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        
+    // Solicita permissão para notificações
+    await androidPlugin?.requestNotificationsPermission();
+    
+    // Solicita permissão para alarmes exatos (Obrigatório a partir do Android 14/15/16)
+    await androidPlugin?.requestExactAlarmsPermission();
   }
 
   Future<void> scheduleRestNotification(DateTime endTime) async {
     await cancelNotification();
 
-    // Todos os parâmetros passaram a ser nomeados
+    // 1. Calcula a duração exata do cronômetro a partir do momento do clique
+    final duration = endTime.difference(DateTime.now());
+    
+    // 2. Adiciona a duração ao relógio da biblioteca para evitar o erro de fuso horário do UTC
+    final scheduledDate = tz.TZDateTime.now(tz.local).add(duration);
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id: 1, 
       title: 'Tempo de Descanso Concluído!',
       body: 'É hora de voltar ao treino.',
-      scheduledDate: tz.TZDateTime.from(endTime, tz.local),
+      scheduledDate: scheduledDate,
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'rest_timer_channel',
@@ -54,7 +67,6 @@ class NotificationService {
   }
 
   Future<void> cancelNotification() async {
-    // Na versão 17+, o id passou a ser um parâmetro nomeado
     await flutterLocalNotificationsPlugin.cancel(id: 1);
   }
 }

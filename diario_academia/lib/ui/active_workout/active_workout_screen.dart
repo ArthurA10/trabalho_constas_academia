@@ -60,11 +60,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         isCompleted: value == true ? 1 : 0,
       );
     });
-
-    // INSERÇÃO NOVA: Dispara o cronómetro quando a série é concluída
+    
+    // Inicia o cronômetro e a notificação se o usuário marcou a série como concluída
     if (value == true) {
-      // Inicia um descanso padrão de 90 segundos
-      ref.read(restTimerProvider.notifier).startTimer(90); 
+      final defaultTime = ref.read(defaultRestTimeProvider);
+      ref.read(restTimerProvider.notifier).startTimer(defaultTime);
     }
   }
 
@@ -94,13 +94,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     }
 
     await ref.read(databaseRepositoryProvider).saveWorkout(widget.routine.name, _startTime, endTime, allSetsToSave);
-
+    
+    // Invalida os providers para atualizar os relatórios na home
     ref.invalidate(historyProvider);
     ref.invalidate(volumeProvider);
-    
-    // Para o cronómetro se ainda estiver a correr ao finalizar o treino
+
+    // Para o cronômetro caso ainda esteja rodando
     ref.read(restTimerProvider.notifier).stopTimer();
-    
+
     if (mounted) Navigator.pop(context);
   }
 
@@ -198,7 +199,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           );
         },
       ),
-      bottomNavigationBar: const RestTimerWidget(),
+      bottomNavigationBar: const RestTimerWidget(), // Mostra o timer fixo na barra inferior do treino
     );
   }
 }

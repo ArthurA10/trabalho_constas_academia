@@ -46,7 +46,8 @@ class RestTimerNotifier extends Notifier<RestTimerState> {
       if (state.targetEndTime == null) return;
 
       final now = DateTime.now();
-      final diff = state.targetEndTime!.difference(now).inSeconds;
+      // Correção: calcula os milissegundos e arredonda para evitar o "pulo"
+      final diff = (state.targetEndTime!.difference(now).inMilliseconds / 1000).round();
 
       if (diff <= 0) {
         stopTimer();
@@ -70,7 +71,8 @@ class RestTimerNotifier extends Notifier<RestTimerState> {
     if (!state.isRunning || state.targetEndTime == null) return;
     
     final newTarget = state.targetEndTime!.add(Duration(seconds: seconds));
-    final newRemaining = newTarget.difference(DateTime.now()).inSeconds;
+    // Correção também aplicada aqui ao adicionar tempo
+    final newRemaining = (newTarget.difference(DateTime.now()).inMilliseconds / 1000).round();
     
     NotificationService().scheduleRestNotification(newTarget);
     
@@ -85,4 +87,18 @@ class RestTimerNotifier extends Notifier<RestTimerState> {
 // 3. Mudamos de StateNotifierProvider para NotifierProvider
 final restTimerProvider = NotifierProvider<RestTimerNotifier, RestTimerState>(() {
   return RestTimerNotifier();
+});
+
+// Guarda o tempo de descanso padrão (inicialmente 90 segundos) usando a sintaxe atualizada
+class DefaultRestTimeNotifier extends Notifier<int> {
+  @override
+  int build() => 90;
+
+  void updateTime(int newTime) {
+    state = newTime;
+  }
+}
+
+final defaultRestTimeProvider = NotifierProvider<DefaultRestTimeNotifier, int>(() {
+  return DefaultRestTimeNotifier();
 });

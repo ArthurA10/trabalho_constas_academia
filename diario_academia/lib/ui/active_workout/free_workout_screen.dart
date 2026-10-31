@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../routines/select_exercise_screen.dart';
@@ -23,12 +24,18 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
       context,
       MaterialPageRoute(builder: (_) => const SelectExerciseScreen()),
     );
-    
+
     if (selected != null && !_exercises.any((e) => e.id == selected.id)) {
       setState(() {
         _exercises.add(selected);
         _workoutSets[selected.id!] = [
-          WorkoutSet(workoutId: 0, exerciseId: selected.id!, weight: 0, reps: 0, isCompleted: 0)
+          WorkoutSet(
+            workoutId: 0,
+            exerciseId: selected.id!,
+            weight: 0,
+            reps: 0,
+            isCompleted: 0,
+          ),
         ];
       });
     }
@@ -37,12 +44,24 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
   void _addSet(int exerciseId) {
     setState(() {
       _workoutSets[exerciseId]!.add(
-        WorkoutSet(workoutId: 0, exerciseId: exerciseId, weight: 0, reps: 0, isCompleted: 0)
+        WorkoutSet(
+          workoutId: 0,
+          exerciseId: exerciseId,
+          weight: 0,
+          reps: 0,
+          isCompleted: 0,
+        ),
       );
     });
   }
 
-  void _updateSet(int exerciseId, int setIndex, double weight, int reps, bool isCompleted) {
+  void _updateSet(
+    int exerciseId,
+    int setIndex,
+    double weight,
+    int reps,
+    bool isCompleted,
+  ) {
     final currentSet = _workoutSets[exerciseId]![setIndex];
     _workoutSets[exerciseId]![setIndex] = WorkoutSet(
       workoutId: currentSet.workoutId,
@@ -61,12 +80,16 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
     }
 
     if (allSetsToSave.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conclua pelo menos uma série.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Conclua pelo menos uma série.')),
+      );
       return;
     }
 
-    await ref.read(databaseRepositoryProvider).saveWorkout('Treino Livre', _startTime, DateTime.now(), allSetsToSave);
-    
+    await ref
+        .read(databaseRepositoryProvider)
+        .saveWorkout('Treino Livre', _startTime, DateTime.now(), allSetsToSave);
+
     ref.invalidate(historyProvider);
     ref.invalidate(volumeProvider);
 
@@ -84,13 +107,22 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
         actions: [
           TextButton(
             onPressed: _finishWorkout,
-            child: const Text('FINALIZAR', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-          )
+            child: const Text(
+              'FINALIZAR',
+              style: TextStyle(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ],
       ),
       body: _exercises.isEmpty
           ? Center(
-              child: Text('Nenhum exercício adicionado.', style: TextStyle(color: Colors.grey.shade500)),
+              child: Text(
+                'Nenhum exercício adicionado.',
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -106,7 +138,13 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(ex.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(
+                          ex.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const Divider(),
                         ...List.generate(sets.length, (setIndex) {
                           final currentSet = sets[setIndex];
@@ -114,36 +152,72 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               children: [
-                                SizedBox(width: 30, child: Text('${setIndex + 1}')),
+                                SizedBox(
+                                  width: 30,
+                                  child: Text('${setIndex + 1}'),
+                                ),
                                 Expanded(
                                   child: TextFormField(
-                                    initialValue: currentSet.weight == 0 ? '' : currentSet.weight.toString(),
+                                    initialValue: currentSet.weight == 0
+                                        ? ''
+                                        : currentSet.weight.toString(),
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(labelText: 'Kg', isDense: true),
-                                    onChanged: (v) => _updateSet(ex.id!, setIndex, double.tryParse(v) ?? 0, currentSet.reps, currentSet.isCompleted == 1),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Kg',
+                                      isDense: true,
+                                    ),
+                                    onChanged: (v) => _updateSet(
+                                      ex.id!,
+                                      setIndex,
+                                      double.tryParse(v) ?? 0,
+                                      currentSet.reps,
+                                      currentSet.isCompleted == 1,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: TextFormField(
-                                    initialValue: currentSet.reps == 0 ? '' : currentSet.reps.toString(),
+                                    initialValue: currentSet.reps == 0
+                                        ? ''
+                                        : currentSet.reps.toString(),
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(labelText: 'Reps', isDense: true),
-                                    onChanged: (v) => _updateSet(ex.id!, setIndex, currentSet.weight, int.tryParse(v) ?? 0, currentSet.isCompleted == 1),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Reps',
+                                      isDense: true,
+                                    ),
+                                    onChanged: (v) => _updateSet(
+                                      ex.id!,
+                                      setIndex,
+                                      currentSet.weight,
+                                      int.tryParse(v) ?? 0,
+                                      currentSet.isCompleted == 1,
+                                    ),
                                   ),
                                 ),
                                 Checkbox(
                                   value: currentSet.isCompleted == 1,
                                   onChanged: (v) {
                                     // 1. Atualiza a série
-                                    _updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, v == true);
-                                    
+                                    _updateSet(
+                                      ex.id!,
+                                      setIndex,
+                                      currentSet.weight,
+                                      currentSet.reps,
+                                      v == true,
+                                    );
+
                                     // 2. Dispara o cronómetro apenas se a caixa for marcada
                                     if (v == true) {
-                                      ref.read(restTimerProvider.notifier).startTimer(90); 
+                                      final tempoPadrao = ref.read(
+                                        defaultRestTimeProvider,
+                                      );
+                                      ref
+                                          .read(restTimerProvider.notifier)
+                                          .startTimer(tempoPadrao);
                                     }
                                   },
-                                )
+                                ),
                               ],
                             ),
                           );
@@ -152,7 +226,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                           onPressed: () => _addSet(ex.id!),
                           icon: const Icon(Icons.add),
                           label: const Text('Adicionar Série'),
-                        )
+                        ),
                       ],
                     ),
                   ),

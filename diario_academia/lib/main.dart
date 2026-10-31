@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/shell/main_screen.dart';
 import 'services/notification_service.dart';
+import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Obrigatório antes de inicializar serviços nativos
@@ -17,13 +18,7 @@ class DiarioAcademiaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Diário de Academia',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueAccent,
-          brightness: Brightness.dark, // Modo escuro
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.darkTheme,
       // Aponta para o ecrã principal que contém as abas (BottomNavigationBar)
       home: const MainScreen(), 
     );
