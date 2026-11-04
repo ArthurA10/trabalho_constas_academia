@@ -32,38 +32,55 @@ class NotificationService {
     final androidPlugin = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         
-    // Solicita permissão para notificações
     await androidPlugin?.requestNotificationsPermission();
     
-    // Solicita permissão para alarmes exatos (Obrigatório a partir do Android 14/15/16)
-    await androidPlugin?.requestExactAlarmsPermission();
+    try {
+      await androidPlugin?.requestExactAlarmsPermission();
+    } catch (_) {}
   }
 
   Future<void> scheduleRestNotification(DateTime endTime) async {
     await cancelNotification();
-
-    // 1. Calcula a duração exata do cronômetro a partir do momento do clique
-    final duration = endTime.difference(DateTime.now());
     
-    // 2. Adiciona a duração ao relógio da biblioteca para evitar o erro de fuso horário do UTC
-    final scheduledDate = tz.TZDateTime.now(tz.local).add(duration);
+    // Calcula quantos segundos exatos a contagem deve durar
+    final int remainingSeconds = endTime.difference(DateTime.now()).inSeconds;
+    if (remainingSeconds <= 0) return;
+    
+    // Adiciona esses segundos à referência zero do UTC para não depender de fuso horário
+    final scheduledDate = tz.TZDateTime.now(tz.UTC).add(Duration(seconds: remainingSeconds));
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      id: 1, 
-      title: 'Tempo de Descanso Concluído!',
-      body: 'É hora de voltar ao treino.',
-      scheduledDate: scheduledDate,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'rest_timer_channel',
-          'Cronômetro de Descanso',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
+    final notificationDetails = const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'rest_timer_channel',
+        'Cronômetro de Descanso',
+        importance: Importance.max,
+        priority: Priority.high,
+        visibility: NotificationVisibility.public,
+        playSound: true,
+        enableVibration: true,
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
     );
+
+    try {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: 1, 
+        title: 'Tempo de Descanso Concluído!',
+        body: 'É hora de voltar ao treino.',
+        scheduledDate: scheduledDate,
+        notificationDetails: notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (e) {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: 1, 
+        title: 'Tempo de Descanso Concluído!',
+        body: 'É hora de voltar ao treino.',
+        scheduledDate: scheduledDate,
+        notificationDetails: notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
   }
 
   Future<void> cancelNotification() async {
