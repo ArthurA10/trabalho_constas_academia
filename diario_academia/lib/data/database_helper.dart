@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'models.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -89,17 +90,43 @@ class DatabaseHelper {
   Future _seedExercises(Database db) async {
     // Dados iniciais atualizados (sem equipment e category)
     final initialExercises = [
-      {'name': 'Supino Reto', 'muscleGroup': 'Peito', 'isActive': 1},
-      {'name': 'Agachamento Livre', 'muscleGroup': 'Pernas', 'isActive': 1},
-      {'name': 'Levantamento Terra', 'muscleGroup': 'Costas', 'isActive': 1},
-      {'name': 'Leg Press', 'muscleGroup': 'Pernas', 'isActive': 1},
-      {'name': 'Puxada Frontal', 'muscleGroup': 'Costas', 'isActive': 1},
-      {'name': 'Rosca Direta', 'muscleGroup': 'Bíceps', 'isActive': 1},
-      {'name': 'Tríceps na Polia', 'muscleGroup': 'Tríceps', 'isActive': 1},
+      {'name': 'Supino Reto', 'muscleGroup': 'Peito', 'imagePath': 'assets/gifs/supino_reto.gif', 'isActive': 1},
+      {'name': 'Agachamento Livre', 'muscleGroup': 'Pernas', 'imagePath': 'assets/gifs/agachamento.gif', 'isActive': 1},
+      {'name': 'Levantamento Terra', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/terra.gif', 'isActive': 1},
+      {'name': 'Leg Press', 'muscleGroup': 'Pernas', 'imagePath': 'assets/gifs/legpress.gif', 'isActive': 1},
+      {'name': 'Puxada Frontal', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/puxada.gif', 'isActive': 1},
+      {'name': 'Rosca Direta', 'muscleGroup': 'Bíceps', 'imagePath': 'assets/gifs/rosca.gif', 'isActive': 1},
+      {'name': 'Tríceps na Polia', 'muscleGroup': 'Tríceps', 'imagePath': 'assets/gifs/triceps.gif', 'isActive': 1},
     ];
 
     for (var ex in initialExercises) {
       await db.insert('exercises', ex);
     }
+  }
+  Future<int> addExercise(Exercise exercise) async {
+    final db = await instance.database;
+    return await db.insert('exercises', exercise.toMap());
+  }
+  // Obtém apenas os exercícios ativos (exclui os apagados)
+  Future<List<Exercise>> getActiveExercises() async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'exercises', 
+      where: 'isActive = ?', 
+      whereArgs: [1],
+      orderBy: 'name ASC', // Opcional: ordena por ordem alfabética
+    );
+    return maps.map((e) => Exercise.fromMap(e)).toList();
+  }
+
+  // Faz a "Eliminação Segura" (Soft Delete) em vez de apagar definitivamente
+  Future<int> deactivateExercise(int id) async {
+    final db = await instance.database;
+    return await db.update(
+      'exercises', 
+      {'isActive': 0}, 
+      where: 'id = ?', 
+      whereArgs: [id]
+    );
   }
 }
