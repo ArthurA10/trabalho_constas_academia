@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
 import 'create_routine_screen.dart';
 import '../active_workout/active_workout_screen.dart';
+import '../../providers/active_workout_session_provider.dart';
 
 class RoutinesScreen extends ConsumerWidget {
   const RoutinesScreen({super.key});
@@ -67,13 +68,22 @@ class RoutinesScreen extends ConsumerWidget {
                     contentPadding: const EdgeInsets.all(16),
                     title: Text(routine.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ActiveWorkoutScreen(routine: routine),
-                        ),
-                      );
+                    onTap: () async {
+                      // 1. Busca os exercícios da rotina escolhida
+                      final exercises = await ref.read(databaseRepositoryProvider).getExercisesForRoutine(routine.id!);
+                      
+                      // 2. Avisa a memória global para iniciar a rotina
+                      ref.read(activeWorkoutSessionProvider.notifier).startRoutineWorkout(routine, exercises);
+                      
+                      // 3. Só depois abre a tela de treino
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ActiveWorkoutScreen(routine: routine),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),

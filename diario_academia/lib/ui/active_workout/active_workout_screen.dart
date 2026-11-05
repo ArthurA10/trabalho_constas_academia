@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/rest_timer_provider.dart';
+import '../../providers/active_workout_session_provider.dart';
 import '../widgets/rest_timer_widget.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
@@ -14,77 +15,31 @@ class ActiveWorkoutScreen extends ConsumerStatefulWidget {
 }
 
 class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
-  final DateTime _startTime = DateTime.now();
-  List<Exercise> _exercises = [];
   bool _isLoading = true;
-  
-  // Mapa para guardar as séries por exercício (ID do exercício -> Lista de séries)
-  final Map<int, List<WorkoutSet>> _workoutSets = {};
 
   @override
   void initState() {
     super.initState();
-    _loadExercises();
-  }
-
-  Future<void> _loadExercises() async {
-    final exercises = await ref.read(databaseRepositoryProvider).getExercisesForRoutine(widget.routine.id!);
-    setState(() {
-      _exercises = exercises;
-      for (var ex in exercises) {
-        // Inicializa com uma série vazia para cada exercício
-        _workoutSets[ex.id!] = [
-          WorkoutSet(workoutId: 0, exerciseId: ex.id!, weight: 0, reps: 0, isCompleted: 0)
-        ];
-      }
-      _isLoading = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeRoutine();
     });
   }
 
-  void _addSet(int exerciseId) {
-    setState(() {
-      _workoutSets[exerciseId]!.add(
-        WorkoutSet(workoutId: 0, exerciseId: exerciseId, weight: 0, reps: 0, isCompleted: 0)
-      );
-    });
-  }
-
-  void _toggleSetCompletion(int exerciseId, int setIndex, bool? value) {
-    setState(() {
-      final currentSet = _workoutSets[exerciseId]![setIndex];
-      _workoutSets[exerciseId]![setIndex] = WorkoutSet(
-        workoutId: currentSet.workoutId,
-        exerciseId: currentSet.exerciseId,
-        weight: currentSet.weight,
-        reps: currentSet.reps,
-        isCompleted: value == true ? 1 : 0,
-      );
-    });
-    
-    // Inicia o cronômetro e a notificação se o usuário marcou a série como concluída
-    if (value == true) {
-      final defaultTime = ref.read(defaultRestTimeProvider);
-      ref.read(restTimerProvider.notifier).startTimer(defaultTime);
+  Future<void> _initializeRoutine() async {
+    final session = ref.read(activeWorkoutSessionProvider);
+    // Se o treino dessa rotina ainda não estiver na memória global, carrega do banco
+    if (!session.isRunning || session.routine?.id != widget.routine.id) {
+      final exercises = await ref.read(databaseRepositoryProvider).getExercisesForRoutine(widget.routine.id!);
+      ref.read(activeWorkoutSessionProvider.notifier).startRoutineWorkout(widget.routine, exercises);
     }
-  }
-
-  void _updateSetValues(int exerciseId, int setIndex, double weight, int reps) {
-    final currentSet = _workoutSets[exerciseId]![setIndex];
-    _workoutSets[exerciseId]![setIndex] = WorkoutSet(
-      workoutId: currentSet.workoutId,
-      exerciseId: currentSet.exerciseId,
-      weight: weight,
-      reps: reps,
-      isCompleted: currentSet.isCompleted,
-    );
+    setState(() => _isLoading = false);
   }
 
   Future<void> _finishWorkout() async {
-    final endTime = DateTime.now();
+    final session = ref.read(activeWorkoutSessionProvider);
     List<WorkoutSet> allSetsToSave = [];
     
-    // Filtra apenas as séries marcadas como concluídas
-    for (var sets in _workoutSets.values) {
+    for (var sets in session.workoutSets.values) {
       allSetsToSave.addAll(sets.where((s) => s.isCompleted == 1));
     }
 
@@ -93,14 +48,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       return;
     }
 
-    await ref.read(databaseRepositoryProvider).saveWorkout(widget.routine.name, _startTime, endTime, allSetsToSave);
+    await ref.read(databaseRepositoryProvider).saveWorkout(widget.routine.name, session.startTime!, DateTime.now(), allSetsToSave);
     
-    // Invalida os providers para atualizar os relatórios na home
     ref.invalidate(historyProvider);
     ref.invalidate(volumeProvider);
-
-    // Para o cronômetro caso ainda esteja rodando
     ref.read(restTimerProvider.notifier).stopTimer();
+    ref.read(activeWorkoutSessionProvider.notifier).discardWorkout();
 
     if (mounted) Navigator.pop(context);
   }
@@ -108,6 +61,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    final session = ref.watch(activeWorkoutSessionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -121,10 +76,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _exercises.length,
+        itemCount: session.exercises.length,
         itemBuilder: (context, index) {
-          final ex = _exercises[index];
-          final sets = _workoutSets[ex.id!]!;
+          final ex = session.exercises[index];
+          final sets = session.workoutSets[ex.id!] ?? [];
 
           return Card(
             margin: const EdgeInsets.only(bottom: 24),
@@ -160,7 +115,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
                                 decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.zero),
-                                onChanged: (val) => _updateSetValues(ex.id!, setIndex, double.tryParse(val) ?? 0, currentSet.reps),
+                                onChanged: (val) => ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, double.tryParse(val) ?? 0, currentSet.reps, currentSet.isCompleted == 1),
                               ),
                             ),
                           ),
@@ -172,7 +127,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
                                 decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.zero),
-                                onChanged: (val) => _updateSetValues(ex.id!, setIndex, currentSet.weight, int.tryParse(val) ?? 0),
+                                onChanged: (val) => ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, int.tryParse(val) ?? 0, currentSet.isCompleted == 1),
                               ),
                             ),
                           ),
@@ -180,7 +135,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             width: 48,
                             child: Checkbox(
                               value: currentSet.isCompleted == 1,
-                              onChanged: (val) => _toggleSetCompletion(ex.id!, setIndex, val),
+                              onChanged: (val) {
+                                ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, val == true);
+                                if (val == true) {
+                                  final defaultTime = ref.read(defaultRestTimeProvider);
+                                  ref.read(restTimerProvider.notifier).startTimer(defaultTime, exerciseName: ex.name);
+                                }
+                              },
                               activeColor: Colors.green,
                             ),
                           ),
@@ -189,7 +150,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     );
                   }),
                   TextButton.icon(
-                    onPressed: () => _addSet(ex.id!),
+                    onPressed: () => ref.read(activeWorkoutSessionProvider.notifier).addSet(ex.id!),
                     icon: const Icon(Icons.add),
                     label: const Text('Adicionar Série'),
                   )
@@ -199,7 +160,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           );
         },
       ),
-      bottomNavigationBar: const RestTimerWidget(), // Mostra o timer fixo na barra inferior do treino
+      bottomNavigationBar: const RestTimerWidget(),
     );
   }
 }

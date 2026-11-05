@@ -28,7 +28,10 @@ class WorkoutDetailScreen extends ConsumerWidget {
           // Agrupar as séries por nome do exercício
           final Map<String, List<Map<String, dynamic>>> groupedSets = {};
           for (var row in sets) {
-            final exName = row['exerciseName'] as String;
+            
+          // Tenta ler primeiro a "fotografia" do nome (snapshot). 
+          // Se for um treino antigo (antes da atualização), usa o fallback do JOIN[cite: 1].
+          final exName = (row['exerciseNameSnapshot'] as String?) ?? (row['exerciseName'] as String?) ?? 'Exercício Excluído';
             if (!groupedSets.containsKey(exName)) groupedSets[exName] = [];
             groupedSets[exName]!.add(row);
           }

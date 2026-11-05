@@ -28,28 +28,16 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
     );
-
-    final androidPlugin = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-        
-    await androidPlugin?.requestNotificationsPermission();
-    
-    try {
-      await androidPlugin?.requestExactAlarmsPermission();
-    } catch (_) {}
   }
 
+  // Alarme de alta prioridade disparado quando o tempo esgota
   Future<void> scheduleRestNotification(DateTime endTime) async {
-    await cancelNotification();
-    
-    // Calcula quantos segundos exatos a contagem deve durar
     final int remainingSeconds = endTime.difference(DateTime.now()).inSeconds;
     if (remainingSeconds <= 0) return;
     
-    // Adiciona esses segundos à referência zero do UTC para não depender de fuso horário
     final scheduledDate = tz.TZDateTime.now(tz.UTC).add(Duration(seconds: remainingSeconds));
 
-    final notificationDetails = const NotificationDetails(
+    const notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         'rest_timer_channel',
         'Cronômetro de Descanso',
@@ -58,6 +46,8 @@ class NotificationService {
         visibility: NotificationVisibility.public,
         playSound: true,
         enableVibration: true,
+        category: AndroidNotificationCategory.alarm,
+        fullScreenIntent: true,
       ),
       iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
     );
@@ -83,7 +73,36 @@ class NotificationService {
     }
   }
 
+  // Notificação com cronômetro contínuo regressivo em tempo real
+  Future<void> showOngoingRestChronometer(DateTime endTime, String exerciseName) async {
+    await flutterLocalNotificationsPlugin.show(
+      id: 2, 
+      title: 'Descanso: $exerciseName',
+      body: 'Tempo restante...',
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          'ongoing_rest_channel',
+          'Descanso em Andamento',
+          importance: Importance.low, 
+          priority: Priority.low,
+          usesChronometer: true, // Habilita o relógio
+          chronometerCountDown: true, // Força a ser regressivo
+          when: endTime.millisecondsSinceEpoch, // O alvo para chegar a zero
+          ongoing: true, // Não pode ser dispensada com arrasto
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+    );
+  }
+
+  // Cancela apenas o cronômetro visual, mantendo o aviso de conclusão na tela
+  Future<void> cancelOngoingChronometer() async {
+    await flutterLocalNotificationsPlugin.cancel(id: 2); 
+  }
+
+  // Único método de cancelamento limpando ambos os alertas
   Future<void> cancelNotification() async {
-    await flutterLocalNotificationsPlugin.cancel(id: 1);
+    await flutterLocalNotificationsPlugin.cancel(id: 1); 
+    await flutterLocalNotificationsPlugin.cancel(id: 2); 
   }
 }

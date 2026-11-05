@@ -95,7 +95,7 @@ class DatabaseRepository {
       '''
       SELECT ws.*, e.name as exerciseName
       FROM workout_sets ws
-      INNER JOIN exercises e ON ws.exerciseId = e.id
+      LEFT JOIN exercises e ON ws.exerciseId = e.id
       WHERE ws.workoutId = ?
     ''',
       [workoutId],
