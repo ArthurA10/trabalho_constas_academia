@@ -7,35 +7,50 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
     tz.initializeTimeZones();
 
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
 
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
     );
+    // Pede a permissão de notificação e de alarmes exatos no Android 13+
+    final androidImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+      await androidImplementation.requestExactAlarmsPermission();
+    }
   }
 
   // Alarme de alta prioridade disparado quando o tempo esgota
   Future<void> scheduleRestNotification(DateTime endTime) async {
     final int remainingSeconds = endTime.difference(DateTime.now()).inSeconds;
     if (remainingSeconds <= 0) return;
-    
-    final scheduledDate = tz.TZDateTime.now(tz.UTC).add(Duration(seconds: remainingSeconds));
+
+    final scheduledDate = tz.TZDateTime.now(tz.UTC)
+        .add(Duration(seconds: remainingSeconds));
 
     const notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -54,7 +69,7 @@ class NotificationService {
 
     try {
       await flutterLocalNotificationsPlugin.zonedSchedule(
-        id: 1, 
+        id: 1,
         title: 'Tempo de Descanso Concluído!',
         body: 'É hora de voltar ao treino.',
         scheduledDate: scheduledDate,
@@ -63,7 +78,7 @@ class NotificationService {
       );
     } catch (e) {
       await flutterLocalNotificationsPlugin.zonedSchedule(
-        id: 1, 
+        id: 1,
         title: 'Tempo de Descanso Concluído!',
         body: 'É hora de voltar ao treino.',
         scheduledDate: scheduledDate,
@@ -74,20 +89,26 @@ class NotificationService {
   }
 
   // Notificação com cronômetro contínuo regressivo em tempo real
-  Future<void> showOngoingRestChronometer(DateTime endTime, String exerciseName) async {
+  Future<void> showOngoingRestChronometer(
+    DateTime endTime,
+    String exerciseName,
+  ) async {
     await flutterLocalNotificationsPlugin.show(
-      id: 2, 
+      id: 2,
       title: 'Descanso: $exerciseName',
       body: 'Tempo restante...',
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'ongoing_rest_channel',
           'Descanso em Andamento',
-          importance: Importance.low, 
+          importance: Importance.low,
           priority: Priority.low,
           usesChronometer: true, // Habilita o relógio
           chronometerCountDown: true, // Força a ser regressivo
-          when: endTime.millisecondsSinceEpoch, // O alvo para chegar a zero
+          
+          // + 2000 ms para compensar o atraso do sistema Android
+          when: endTime.millisecondsSinceEpoch + 2000, 
+          
           ongoing: true, // Não pode ser dispensada com arrasto
         ),
         iOS: const DarwinNotificationDetails(),
@@ -97,12 +118,12 @@ class NotificationService {
 
   // Cancela apenas o cronômetro visual, mantendo o aviso de conclusão na tela
   Future<void> cancelOngoingChronometer() async {
-    await flutterLocalNotificationsPlugin.cancel(id: 2); 
+    await flutterLocalNotificationsPlugin.cancel(id: 2);
   }
 
   // Único método de cancelamento limpando ambos os alertas
   Future<void> cancelNotification() async {
-    await flutterLocalNotificationsPlugin.cancel(id: 1); 
-    await flutterLocalNotificationsPlugin.cancel(id: 2); 
+    await flutterLocalNotificationsPlugin.cancel(id: 1);
+    await flutterLocalNotificationsPlugin.cancel(id: 2);
   }
 }
