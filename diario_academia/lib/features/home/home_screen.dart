@@ -4,6 +4,7 @@ import '../../providers/app_providers.dart';
 import '../../ui/active_workout/free_workout_screen.dart';
 import '../../providers/active_workout_session_provider.dart';
 import '../../ui/active_workout/active_workout_screen.dart';
+import '../../ui/settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,8 +18,19 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diário de Academia'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
-      // Trocamos SingleChildScrollView + Column por ListView (muito mais seguro contra crash de layout)
+
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [

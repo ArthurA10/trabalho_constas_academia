@@ -6,6 +6,7 @@ import '../routines/select_exercise_screen.dart';
 import '../../providers/rest_timer_provider.dart';
 import '../../providers/active_workout_session_provider.dart';
 import '../widgets/rest_timer_widget.dart';
+import '../../providers/settings_provider.dart';
 
 class FreeWorkoutScreen extends ConsumerStatefulWidget {
   const FreeWorkoutScreen({super.key});
@@ -60,7 +61,8 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(activeWorkoutSessionProvider);
-
+    final settings = ref.watch(settingsProvider); // LÊ AS CONFIGURAÇÕES AQUI
+    final pesoLabel = settings.useLbs ? 'Lbs' : 'Kg'; // DEFINE A PALAVRA CERTA
     return Scaffold(
       appBar: AppBar(
         title: const Text('Treino Livre'),
@@ -100,7 +102,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                   child: TextFormField(
                                     initialValue: currentSet.weight == 0 ? '' : currentSet.weight.toString(),
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(labelText: 'Kg', isDense: true),
+                                    decoration: InputDecoration(labelText: pesoLabel, isDense: true),
                                     onChanged: (v) => ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, double.tryParse(v) ?? 0, currentSet.reps, currentSet.isCompleted == 1),
                                   ),
                                 ),
@@ -118,7 +120,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                   onChanged: (v) {
                                     ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, v == true);
                                     if (v == true) {
-                                      final tempoPadrao = ref.read(defaultRestTimeProvider);
+                                      final tempoPadrao = ref.read(settingsProvider).defaultRestTime;
                                       // ENVIA O NOME DO EXERCÍCIO PARA A NOTIFICAÇÃO
                                       ref.read(restTimerProvider.notifier).startTimer(tempoPadrao, exerciseName: ex.name);
                                     }

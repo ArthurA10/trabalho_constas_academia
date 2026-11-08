@@ -102,14 +102,17 @@ class DatabaseRepository {
     );
   }
 
+  // Calcula o volume total (peso x repetições) de todas as séries concluídas
   Future<double> getTotalVolume() async {
     final db = await DatabaseHelper.instance.database;
     final result = await db.rawQuery('''
-      SELECT SUM(weight * reps) as volume 
-      FROM workout_sets 
-      WHERE isCompleted = 1
+      SELECT SUM(ws.weight * ws.reps) as volume 
+      FROM workout_sets ws
+      INNER JOIN workouts w ON ws.workoutId = w.id
+      WHERE w.isCompleted = 1 AND ws.isCompleted = 1
     ''');
-    return (result.first['volume'] as num?)?.toDouble() ?? 0.0;
+    final volume = result.first['volume'];
+    return volume != null ? (volume as num).toDouble() : 0.0;
   }
 
   Future<void> deleteWorkout(int workoutId) async {
@@ -135,4 +138,30 @@ class DatabaseRepository {
       'muscleGroup': muscleGroup,
     });
   }
-}
+
+  // Conta o número total de treinos finalizados
+  Future<int> getTotalWorkouts() async {
+    final db = await DatabaseHelper.instance.database;
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM workouts WHERE isCompleted = 1');
+    return (result.first['count'] as int?) ?? 0;
+  }
+
+  // Apaga apenas o histórico de treinos e séries concluídas
+  Future<void> clearWorkoutHistory() async {
+    final db = await DatabaseHelper.instance.database;
+    await db.transaction((txn) async {
+      await txn.delete('workout_sets');
+      await txn.delete('workouts');
+    });
+  }
+}  //DatabaseRepository
+
+final totalWorkoutsProvider = FutureProvider<int>((ref) async {
+  final repo = DatabaseRepository();
+  return await repo.getTotalWorkouts();
+});
+
+final totalVolumeProvider = FutureProvider<double>((ref) async {
+  final repo = DatabaseRepository();
+  return await repo.getTotalVolume();
+});

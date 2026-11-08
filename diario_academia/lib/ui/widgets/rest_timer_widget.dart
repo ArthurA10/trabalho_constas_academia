@@ -11,54 +11,6 @@ class RestTimerWidget extends ConsumerWidget {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  void _showSettingsDialog(BuildContext context, WidgetRef ref) {
-    int newTime = ref.read(defaultRestTimeProvider);
-    
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Tempo de Descanso'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Defina o tempo de descanso para as próximas séries (em segundos):'),
-              const SizedBox(height: 16),
-              TextFormField(
-                initialValue: newTime.toString(),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Segundos',
-                  suffixText: 's',
-                ),
-                onChanged: (val) {
-                  newTime = int.tryParse(val) ?? newTime;
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CANCELAR'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Guarda o novo tempo padrão na memória
-                ref.read(defaultRestTimeProvider.notifier).state = newTime;
-                // Reinicia o cronómetro atual com o novo tempo
-                ref.read(restTimerProvider.notifier).startTimer(newTime);
-                Navigator.pop(context);
-              },
-              child: const Text('SALVAR'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timerState = ref.watch(restTimerProvider);
@@ -80,44 +32,22 @@ class RestTimerWidget extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Agora o tempo é um botão clicável com um ícone de edição
-            InkWell(
-              onTap: () => _showSettingsDialog(context, ref),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.timer, size: 28),
-                    const SizedBox(width: 8),
-                    Text(
-                      _formatTime(timerState.remainingSeconds),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.edit, size: 16, color: Colors.grey),
-                  ],
-                ),
-              ),
-            ),
+            // Lado Esquerdo: Ícone e Tempo Restante
             Row(
               children: [
-                TextButton(
-                  onPressed: () => ref.read(restTimerProvider.notifier).addTime(30),
-                  child: const Text('+30s'),
-                ),
-                TextButton(
-                  onPressed: () => ref.read(restTimerProvider.notifier).addTime(-30),
-                  child: const Text('-30s'),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => ref.read(restTimerProvider.notifier).stopTimer(),
+                const Icon(Icons.timer),
+                const SizedBox(width: 8),
+                Text(
+                  'Descanso: ${_formatTime(timerState.remainingSeconds)}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
+            ),
+            
+            // Lado Direito: Botão de Pular/Cancelar o descanso
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => ref.read(restTimerProvider.notifier).stopTimer(),
             ),
           ],
         ),

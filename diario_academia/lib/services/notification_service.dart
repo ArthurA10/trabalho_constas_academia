@@ -106,8 +106,7 @@ class NotificationService {
           usesChronometer: true, // Habilita o relógio
           chronometerCountDown: true, // Força a ser regressivo
           
-          // + 2000 ms para compensar o atraso do sistema Android
-          when: endTime.millisecondsSinceEpoch + 2000, 
+          when: endTime.millisecondsSinceEpoch, 
           
           ongoing: true, // Não pode ser dispensada com arrasto
         ),

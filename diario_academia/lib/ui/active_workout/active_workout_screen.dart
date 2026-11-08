@@ -5,6 +5,7 @@ import '../../providers/app_providers.dart';
 import '../../providers/rest_timer_provider.dart';
 import '../../providers/active_workout_session_provider.dart';
 import '../widgets/rest_timer_widget.dart';
+import '../../providers/settings_provider.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
   final Routine routine;
@@ -63,6 +64,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     final session = ref.watch(activeWorkoutSessionProvider);
+    final settings = ref.watch(settingsProvider); // LÊ AS CONFIGURAÇÕES AQUI
+    final pesoLabel = settings.useLbs ? 'Lbs' : 'Kg'; // DEFINE A PALAVRA CERTA
 
     return Scaffold(
       appBar: AppBar(
@@ -92,9 +95,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children:  [
                       SizedBox(width: 40, child: Text('Série', textAlign: TextAlign.center)),
-                      Expanded(child: Text('Peso (kg)', textAlign: TextAlign.center)),
+                      Expanded(child: Text('Peso ($pesoLabel)', textAlign: TextAlign.center)),
                       Expanded(child: Text('Reps', textAlign: TextAlign.center)),
                       SizedBox(width: 48, child: Icon(Icons.check)),
                     ],
@@ -138,9 +141,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               onChanged: (val) {
                                 ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, val == true);
                                 if (val == true) {
-                                  final defaultTime = ref.read(defaultRestTimeProvider);
-                                  ref.read(restTimerProvider.notifier).startTimer(defaultTime, exerciseName: ex.name);
-                                }
+                                // Lê o tempo salvo nas configurações pelo usuário
+                                final tempoPadrao = ref.read(settingsProvider).defaultRestTime;
+                                ref.read(restTimerProvider.notifier).startTimer(tempoPadrao, exerciseName: ex.name);
+                              }
                               },
                               activeColor: Colors.green,
                             ),
