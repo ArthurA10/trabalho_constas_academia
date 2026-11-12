@@ -91,12 +91,23 @@ class DatabaseHelper {
     // Dados iniciais atualizados (sem equipment e category)
     final initialExercises = [
       {'name': 'Supino Reto', 'muscleGroup': 'Peito', 'imagePath': 'assets/gifs/supino_reto.gif', 'isActive': 1},
-      {'name': 'Agachamento Livre', 'muscleGroup': 'Pernas', 'imagePath': 'assets/gifs/agachamento.gif', 'isActive': 1},
+      {'name': 'Supino Inclinado com Halteres', 'muscleGroup': 'Peito', 'imagePath': 'assets/gifs/supino_inclinado.gif', 'isActive': 1},
+      {'name': 'Crossover Polia Alta', 'muscleGroup': 'Peito', 'imagePath': 'assets/gifs/crucifixo_crossover_alto.gif', 'isActive': 1},
+      {'name': 'Agachamento Livre', 'muscleGroup': 'Pernas', 'imagePath': 'assets/gifs/agachamento_livre.gif', 'isActive': 1},
       {'name': 'Levantamento Terra', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/terra.gif', 'isActive': 1},
-      {'name': 'Leg Press', 'muscleGroup': 'Pernas', 'imagePath': 'assets/gifs/legpress.gif', 'isActive': 1},
+      {'name': 'Leg Press', 'muscleGroup': 'Quadríceps', 'imagePath': 'assets/gifs/legpress.gif', 'isActive': 1},
       {'name': 'Puxada Frontal', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/puxada.gif', 'isActive': 1},
-      {'name': 'Rosca Direta', 'muscleGroup': 'Bíceps', 'imagePath': 'assets/gifs/rosca.gif', 'isActive': 1},
-      {'name': 'Tríceps na Polia', 'muscleGroup': 'Tríceps', 'imagePath': 'assets/gifs/triceps.gif', 'isActive': 1},
+      {'name': 'Rosca Direta com Barra', 'muscleGroup': 'Bíceps', 'imagePath': 'assets/gifs/rosca_direta.gif', 'isActive': 1},
+      {'name': 'Tríceps Pulley', 'muscleGroup': 'Tríceps', 'imagePath': 'assets/gifs/pulley.gif', 'isActive': 1},
+      {'name': 'Tríceps Francês com Halteres', 'muscleGroup': 'Tríceps', 'imagePath': 'assets/gifs/triceps_frances.gif', 'isActive': 1},
+      {'name': 'Mesa Flexora', 'muscleGroup': 'Posterior de Coxa', 'imagePath': 'assets/gifs/flexora.gif', 'isActive': 1},
+      {'name': 'Stiff', 'muscleGroup': 'Posterior de Coxa', 'imagePath': 'assets/gifs/stiff.gif', 'isActive': 1},
+      {'name': 'Panturrilha em Pé', 'muscleGroup': 'Panturrilha', 'imagePath': 'assets/gifs/panturrilha_pe.gif', 'isActive': 1},
+      {'name': 'Remada Articulada', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/remada_articulada.gif', 'isActive': 1},
+      {'name': 'Remada Baixa', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/remada_baixa.gif', 'isActive': 1},
+      {'name': 'Rosca Scott', 'muscleGroup': 'Bíceps', 'imagePath': 'assets/gifs/scott.gif', 'isActive': 1},
+      {'name': 'Elevação Lateral', 'muscleGroup': 'Ombro', 'imagePath': 'assets/gifs/elevacao_lateral.gif', 'isActive': 1},
+      {'name': 'Desenvolvimento Ombro Máquina', 'muscleGroup': 'Ombro', 'imagePath': 'assets/gifs/desenvolvimento_ombro.gif', 'isActive': 1},
     ];
 
     for (var ex in initialExercises) {

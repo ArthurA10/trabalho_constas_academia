@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../routines/select_exercise_screen.dart';
@@ -38,17 +39,33 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
   Future<void> _finishWorkout() async {
     final session = ref.read(activeWorkoutSessionProvider);
     List<WorkoutSet> allSetsToSave = [];
-    
+
+    // Filtra apenas séries concluídas E com peso e repetições válidos
     for (var sets in session.workoutSets.values) {
-      allSetsToSave.addAll(sets.where((s) => s.isCompleted == 1));
+      allSetsToSave.addAll(
+        sets.where((s) => s.isCompleted == 1 && s.weight > 0 && s.reps > 0),
+      );
     }
 
     if (allSetsToSave.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conclua pelo menos uma série.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conclua pelo menos uma série válida.'),
+          behavior: SnackBarBehavior.floating, // Faz a mensagem flutuar
+          margin: EdgeInsets.only(bottom: 3, left: 16, right: 16),
+        ),
+      );
       return;
     }
 
-    await ref.read(databaseRepositoryProvider).saveWorkout('Treino Livre', session.startTime!, DateTime.now(), allSetsToSave);
+    await ref
+        .read(databaseRepositoryProvider)
+        .saveWorkout(
+          'Treino Livre',
+          session.startTime!,
+          DateTime.now(),
+          allSetsToSave,
+        );
 
     ref.invalidate(historyProvider);
     ref.invalidate(volumeProvider);
@@ -69,12 +86,23 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
         actions: [
           TextButton(
             onPressed: _finishWorkout,
-            child: const Text('FINALIZAR', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'FINALIZAR',
+              style: TextStyle(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
       body: session.exercises.isEmpty
-          ? Center(child: Text('Nenhum exercício adicionado.', style: TextStyle(color: Colors.grey.shade500)))
+          ? Center(
+              child: Text(
+                'Nenhum exercício adicionado.',
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: session.exercises.length,
@@ -89,7 +117,13 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(ex.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(
+                          ex.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const Divider(),
                         ...List.generate(sets.length, (setIndex) {
                           final currentSet = sets[setIndex];
@@ -97,33 +131,107 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               children: [
-                                SizedBox(width: 30, child: Text('${setIndex + 1}')),
+                                SizedBox(
+                                  width: 30,
+                                  child: Text('${setIndex + 1}'),
+                                ),
                                 Expanded(
                                   child: TextFormField(
-                                    initialValue: currentSet.weight == 0 ? '' : currentSet.weight.toString(),
+                                    initialValue: currentSet.weight == 0
+                                        ? ''
+                                        : currentSet.weight.toString(),
                                     keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(labelText: pesoLabel, isDense: true),
-                                    onChanged: (v) => ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, double.tryParse(v) ?? 0, currentSet.reps, currentSet.isCompleted == 1),
+                                    decoration: InputDecoration(
+                                      labelText: pesoLabel,
+                                      isDense: true,
+                                    ),
+                                    onChanged: (v) => ref
+                                        .read(
+                                          activeWorkoutSessionProvider.notifier,
+                                        )
+                                        .updateSet(
+                                          ex.id!,
+                                          setIndex,
+                                          double.tryParse(v) ?? 0,
+                                          currentSet.reps,
+                                          currentSet.isCompleted == 1,
+                                        ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: TextFormField(
-                                    initialValue: currentSet.reps == 0 ? '' : currentSet.reps.toString(),
+                                    initialValue: currentSet.reps == 0
+                                        ? ''
+                                        : currentSet.reps.toString(),
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(labelText: 'Reps', isDense: true),
-                                    onChanged: (v) => ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, int.tryParse(v) ?? 0, currentSet.isCompleted == 1),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Reps',
+                                      isDense: true,
+                                    ),
+                                    onChanged: (v) => ref
+                                        .read(
+                                          activeWorkoutSessionProvider.notifier,
+                                        )
+                                        .updateSet(
+                                          ex.id!,
+                                          setIndex,
+                                          currentSet.weight,
+                                          int.tryParse(v) ?? 0,
+                                          currentSet.isCompleted == 1,
+                                        ),
                                   ),
                                 ),
                                 Checkbox(
                                   value: currentSet.isCompleted == 1,
-                                  onChanged: (v) {
-                                    ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, v == true);
-                                    if (v == true) {
-                                      final tempoPadrao = ref.read(settingsProvider).defaultRestTime;
-                                      // ENVIA O NOME DO EXERCÍCIO PARA A NOTIFICAÇÃO
-                                      ref.read(restTimerProvider.notifier).startTimer(tempoPadrao, exerciseName: ex.name);
+                                  onChanged: (val) {
+                                    // 1. Se estiver tentando marcar como concluído (val == true)
+                                    if (val == true) {
+                                      // Valida se o peso e repetições são maiores que zero
+                                      if (currentSet.weight <= 0 ||
+                                          currentSet.reps <= 0) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Preencha o peso e as repetições antes de concluir a série!',
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: EdgeInsets.only(
+                                              bottom: 5,
+                                              left: 16,
+                                              right: 16,
+                                            ),
+                                          ),
+                                        );
+                                        return; // Interrompe a execução e não marca a caixa
+                                      }
+
+                                      // Se passou na validação, dispara o cronômetro de descanso
+                                      final tempoPadrao = ref
+                                          .read(settingsProvider)
+                                          .defaultRestTime;
+                                      ref
+                                          .read(restTimerProvider.notifier)
+                                          .startTimer(
+                                            tempoPadrao,
+                                            exerciseName: ex.name,
+                                          );
                                     }
+
+                                    // 2. Atualiza o estado da série no provedor (se desmarcou ou se passou na validação)
+                                    ref
+                                        .read(
+                                          activeWorkoutSessionProvider.notifier,
+                                        )
+                                        .updateSet(
+                                          ex.id!,
+                                          setIndex,
+                                          currentSet.weight,
+                                          currentSet.reps,
+                                          val == true,
+                                        );
                                   },
                                 ),
                               ],
@@ -131,7 +239,9 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                           );
                         }),
                         TextButton.icon(
-                          onPressed: () => ref.read(activeWorkoutSessionProvider.notifier).addSet(ex.id!),
+                          onPressed: () => ref
+                              .read(activeWorkoutSessionProvider.notifier)
+                              .addSet(ex.id!),
                           icon: const Icon(Icons.add),
                           label: const Text('Adicionar Série'),
                         ),

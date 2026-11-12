@@ -40,12 +40,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     final session = ref.read(activeWorkoutSessionProvider);
     List<WorkoutSet> allSetsToSave = [];
     
+    // Filtra apenas séries concluídas E com peso e repetições válidos
     for (var sets in session.workoutSets.values) {
-      allSetsToSave.addAll(sets.where((s) => s.isCompleted == 1));
+      allSetsToSave.addAll(
+        sets.where((s) => s.isCompleted == 1 && s.weight > 0 && s.reps > 0),
+      );
     }
 
     if (allSetsToSave.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conclua pelo menos uma série para guardar.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conclua pelo menos uma série para guardar.'),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.only(bottom: 10, left: 16, right: 16),
+      ),
+      );
       return;
     }
 
@@ -139,13 +146,34 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             child: Checkbox(
                               value: currentSet.isCompleted == 1,
                               onChanged: (val) {
-                                ref.read(activeWorkoutSessionProvider.notifier).updateSet(ex.id!, setIndex, currentSet.weight, currentSet.reps, val == true);
-                                if (val == true) {
-                                // Lê o tempo salvo nas configurações pelo usuário
+                              // 1. Se estiver tentando marcar como concluído (val == true)
+                              if (val == true) {
+                                // Valida se o peso e repetições são maiores que zero
+                                if (currentSet.weight <= 0 || currentSet.reps <= 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Preencha o peso e as repetições antes de concluir a série!'),
+                                      behavior: SnackBarBehavior.floating,
+                                      margin: EdgeInsets.only(bottom: 10, left: 16, right: 16),
+                                    ),
+                                  );
+                                  return; // Interrompe a execução e não marca a caixa
+                                }
+
+                                // Se passou na validação, dispara o cronômetro de descanso
                                 final tempoPadrao = ref.read(settingsProvider).defaultRestTime;
                                 ref.read(restTimerProvider.notifier).startTimer(tempoPadrao, exerciseName: ex.name);
                               }
-                              },
+
+                              // 2. Atualiza o estado da série no provedor (se desmarcou ou se passou na validação)
+                              ref.read(activeWorkoutSessionProvider.notifier).updateSet(
+                                ex.id!,
+                                setIndex,
+                                currentSet.weight,
+                                currentSet.reps,
+                                val == true,
+                              );
+                            },
                               activeColor: Colors.green,
                             ),
                           ),
