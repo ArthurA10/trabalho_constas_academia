@@ -128,7 +128,8 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                         ...List.generate(sets.length, (setIndex) {
                           final currentSet = sets[setIndex];
                           return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            key: ValueKey(currentSet.uiKey),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Row(
                               children: [
                                 SizedBox(
@@ -182,6 +183,27 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                         ),
                                   ),
                                 ),
+
+                                // --- NOVO CÓDIGO DA LIXEIRA AQUI ---
+                                if (currentSet.isCompleted == 0) // Só mostra se a série não estiver concluída
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                      color: Colors.red,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    constraints: const BoxConstraints(), // Tira o espaçamento excessivo padrão do Flutter
+                                    onPressed: () {
+                                      ref
+                                          .read(
+                                            activeWorkoutSessionProvider
+                                                .notifier,
+                                          )
+                                          .removeSet(ex.id!, setIndex);
+                                    },
+                                  ),
                                 Checkbox(
                                   value: currentSet.isCompleted == 1,
                                   onChanged: (val) {

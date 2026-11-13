@@ -97,22 +97,44 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
   }
 
   void updateSet(int exerciseId, int setIndex, double weight, int reps, bool isCompleted) {
-    final newSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
-    final currentSets = List<WorkoutSet>.from(newSets[exerciseId]!);
-    final oldSet = currentSets[setIndex];
-    currentSets[setIndex] = WorkoutSet(
-      workoutId: oldSet.workoutId,
-      exerciseId: exerciseId,
-      weight: weight,
-      reps: reps,
-      isCompleted: isCompleted ? 1 : 0,
-    );
-    newSets[exerciseId] = currentSets;
-    state = state.copyWith(workoutSets: newSets);
+    final currentSets = List<WorkoutSet>.from(state.workoutSets[exerciseId] ?? []);
+    
+    if (setIndex >= 0 && setIndex < currentSets.length) {
+      // 1. Pegamos a série exata que já existe na tela
+      final oldSet = currentSets[setIndex];
+      
+      // 2. Usamos o copyWith! Isso atualiza os números mas MANTÉM o uiKey original intacto.
+      currentSets[setIndex] = oldSet.copyWith(
+        weight: weight,
+        reps: reps,
+        isCompleted: isCompleted ? 1 : 0,
+      );
+      
+      final updatedWorkoutSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
+      updatedWorkoutSets[exerciseId] = currentSets;
+      
+      state = state.copyWith(workoutSets: updatedWorkoutSets);
+    }
   }
 
   void discardWorkout() {
     state = ActiveWorkoutSession();
+  }
+
+  void removeSet(int exerciseId, int setIndex) {
+    // Cria uma cópia da lista de séries atual para aquele exercício
+    final currentSets = List<WorkoutSet>.from(state.workoutSets[exerciseId] ?? []);
+    
+    if (currentSets.length > setIndex) {
+      currentSets.removeAt(setIndex); // Remove a série desejada
+      
+      // Cria um novo mapa atualizado
+      final updatedWorkoutSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
+      updatedWorkoutSets[exerciseId] = currentSets;
+      
+      // Atualiza o estado para forçar a tela a redesenhar
+      state = state.copyWith(workoutSets: updatedWorkoutSets);
+    }
   }
 }
 

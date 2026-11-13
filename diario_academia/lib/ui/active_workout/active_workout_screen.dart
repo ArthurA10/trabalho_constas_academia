@@ -112,7 +112,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   const Divider(),
                   ...List.generate(sets.length, (setIndex) {
                     final currentSet = sets[setIndex];
+
                     return Padding(
+                      key: ValueKey(currentSet.uiKey),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
@@ -141,6 +143,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               ),
                             ),
                           ),
+
+                          if (currentSet.isCompleted == 0)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              constraints: const BoxConstraints(), // Evita que o botão ocupe muito espaço
+                              onPressed: () {
+                                ref.read(activeWorkoutSessionProvider.notifier).removeSet(ex.id!, setIndex);
+                              },
+                            ),
                           SizedBox(
                             width: 48,
                             child: Checkbox(

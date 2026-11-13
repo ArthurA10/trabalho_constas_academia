@@ -102,11 +102,11 @@ class DatabaseHelper {
       {'name': 'Tríceps Francês com Halteres', 'muscleGroup': 'Tríceps', 'imagePath': 'assets/gifs/triceps_frances.gif', 'isActive': 1},
       {'name': 'Mesa Flexora', 'muscleGroup': 'Posterior de Coxa', 'imagePath': 'assets/gifs/flexora.gif', 'isActive': 1},
       {'name': 'Stiff', 'muscleGroup': 'Posterior de Coxa', 'imagePath': 'assets/gifs/stiff.gif', 'isActive': 1},
-      {'name': 'Panturrilha em Pé', 'muscleGroup': 'Panturrilha', 'imagePath': 'assets/gifs/panturrilha_pe.gif', 'isActive': 1},
+      {'name': 'Panturrilha em Pé Máquina', 'muscleGroup': 'Panturrilha', 'imagePath': 'assets/gifs/panturrilha_pe.gif', 'isActive': 1},
       {'name': 'Remada Articulada', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/remada_articulada.gif', 'isActive': 1},
       {'name': 'Remada Baixa', 'muscleGroup': 'Costas', 'imagePath': 'assets/gifs/remada_baixa.gif', 'isActive': 1},
-      {'name': 'Rosca Scott', 'muscleGroup': 'Bíceps', 'imagePath': 'assets/gifs/scott.gif', 'isActive': 1},
-      {'name': 'Elevação Lateral', 'muscleGroup': 'Ombro', 'imagePath': 'assets/gifs/elevacao_lateral.gif', 'isActive': 1},
+      {'name': 'Rosca Scott Livre', 'muscleGroup': 'Bíceps', 'imagePath': 'assets/gifs/scott.gif', 'isActive': 1},
+      {'name': 'Elevação Lateral com Halteres', 'muscleGroup': 'Ombro', 'imagePath': 'assets/gifs/elevacao_lateral.gif', 'isActive': 1},
       {'name': 'Desenvolvimento Ombro Máquina', 'muscleGroup': 'Ombro', 'imagePath': 'assets/gifs/desenvolvimento_ombro.gif', 'isActive': 1},
     ];
 
