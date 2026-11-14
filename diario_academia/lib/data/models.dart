@@ -6,6 +6,7 @@ class Exercise {
   final String muscleGroup;
   final String? imagePath;
   final int isActive; // 1 para ativo, 0 para excluído (soft delete)
+  final String category;
 
   Exercise({
     this.id,
@@ -13,6 +14,7 @@ class Exercise {
     required this.muscleGroup,
     this.imagePath,
     this.isActive = 1,
+    this.category = 'musculacao',
   });
 
   Map<String, dynamic> toMap() => {
@@ -21,6 +23,7 @@ class Exercise {
     'muscleGroup': muscleGroup,
     'imagePath': imagePath,
     'isActive': isActive,
+    'category': category,
   };
 
   factory Exercise.fromMap(Map<String, dynamic> map) => Exercise(
@@ -29,6 +32,7 @@ class Exercise {
     muscleGroup: map['muscleGroup'],
     imagePath: map['imagePath'],
     isActive: map['isActive'] ?? 1,
+    category: map['category'] ?? 'musculacao',
   );
 }
 

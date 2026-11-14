@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../routines/select_exercise_screen.dart';
@@ -40,7 +39,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
     final session = ref.read(activeWorkoutSessionProvider);
     List<WorkoutSet> allSetsToSave = [];
 
-    // Filtra apenas séries concluídas E com peso e repetições válidos
+    // Filtra apenas séries concluídas E com valores válidos
     for (var sets in session.workoutSets.values) {
       allSetsToSave.addAll(
         sets.where((s) => s.isCompleted == 1 && s.weight > 0 && s.reps > 0),
@@ -78,8 +77,9 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(activeWorkoutSessionProvider);
-    final settings = ref.watch(settingsProvider); // LÊ AS CONFIGURAÇÕES AQUI
-    final pesoLabel = settings.useLbs ? 'Lbs' : 'Kg'; // DEFINE A PALAVRA CERTA
+    final settings = ref.watch(settingsProvider);
+    final pesoLabel = settings.useLbs ? 'Lbs' : 'Kg'; 
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Treino Livre'),
@@ -109,6 +109,18 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
               itemBuilder: (context, index) {
                 final ex = session.exercises[index];
                 final sets = session.workoutSets[ex.id!] ?? [];
+
+                // --- LÓGICA DE CATEGORIA ADICIONADA AQUI ---
+                String label1 = pesoLabel;
+                String label2 = 'Reps';
+                
+                if (ex.category == 'cardio') {
+                  label1 = 'Km'; // Usa o campo weight para distância
+                  label2 = 'Min'; // Usa o campo reps para tempo
+                } else if (ex.category == 'peso_corporal') {
+                  label1 = '+$pesoLabel'; // Representa peso extra
+                  label2 = 'Reps';
+                }
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 24),
@@ -143,7 +155,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                         : currentSet.weight.toString(),
                                     keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
-                                      labelText: pesoLabel,
+                                      labelText: label1, // Rótulo dinâmico
                                       isDense: true,
                                     ),
                                     onChanged: (v) => ref
@@ -166,8 +178,8 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                         ? ''
                                         : currentSet.reps.toString(),
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Reps',
+                                    decoration: InputDecoration(
+                                      labelText: label2, // Rótulo dinâmico
                                       isDense: true,
                                     ),
                                     onChanged: (v) => ref
@@ -184,8 +196,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                   ),
                                 ),
 
-                                // --- NOVO CÓDIGO DA LIXEIRA AQUI ---
-                                if (currentSet.isCompleted == 0) // Só mostra se a série não estiver concluída
+                                if (currentSet.isCompleted == 0)
                                   IconButton(
                                     icon: const Icon(
                                       Icons.remove_circle_outline,
@@ -194,7 +205,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 4,
                                     ),
-                                    constraints: const BoxConstraints(), // Tira o espaçamento excessivo padrão do Flutter
+                                    constraints: const BoxConstraints(),
                                     onPressed: () {
                                       ref
                                           .read(
@@ -207,30 +218,31 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                 Checkbox(
                                   value: currentSet.isCompleted == 1,
                                   onChanged: (val) {
-                                    // 1. Se estiver tentando marcar como concluído (val == true)
                                     if (val == true) {
-                                      // Valida se o peso e repetições são maiores que zero
                                       if (currentSet.weight <= 0 ||
                                           currentSet.reps <= 0) {
+                                            
+                                        // Mensagem de erro dinâmica baseada na categoria
+                                        final errorMessage = ex.category == 'cardio'
+                                            ? 'Preencha a distância e o tempo antes de concluir!'
+                                            : 'Preencha o peso e as repetições antes de concluir a série!';
+
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Preencha o peso e as repetições antes de concluir a série!',
-                                            ),
+                                          SnackBar(
+                                            content: Text(errorMessage),
                                             behavior: SnackBarBehavior.floating,
-                                            margin: EdgeInsets.only(
+                                            margin: const EdgeInsets.only(
                                               bottom: 5,
                                               left: 16,
                                               right: 16,
                                             ),
                                           ),
                                         );
-                                        return; // Interrompe a execução e não marca a caixa
+                                        return; 
                                       }
 
-                                      // Se passou na validação, dispara o cronômetro de descanso
                                       final tempoPadrao = ref
                                           .read(settingsProvider)
                                           .defaultRestTime;
@@ -242,7 +254,6 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                                           );
                                     }
 
-                                    // 2. Atualiza o estado da série no provedor (se desmarcou ou se passou na validação)
                                     ref
                                         .read(
                                           activeWorkoutSessionProvider.notifier,

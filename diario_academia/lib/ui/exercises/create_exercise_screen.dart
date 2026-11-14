@@ -16,9 +16,10 @@ class CreateExerciseScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
+  String _selectedCategory = 'musculacao'; // Variável da categoria
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _muscleGroupController = TextEditingController();
+  final _muscleGroupController = TextEditingController(); // O controlador do grupo muscular está aqui
   
   File? _selectedImage;
   bool _isSaving = false;
@@ -60,15 +61,15 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
 
     final newExercise = Exercise(
       name: _nameController.text.trim(),
-      muscleGroup: _muscleGroupController.text.trim(),
+      muscleGroup: _muscleGroupController.text.trim(), // Salvando o grupo muscular
       imagePath: permanentImagePath,
       isActive: 1,
+      category: _selectedCategory, // ADICIONADO: Salvando a categoria (Musculação ou Cardio)
     );
 
-    // USANDO O SEU DATABASE HELPER AQUI:
     await DatabaseHelper.instance.addExercise(newExercise);
 
-    ref.invalidate(exercisesProvider); // Atualiza a lista de exercícios
+    ref.invalidate(exercisesProvider);
 
     if (mounted) {
       Navigator.pop(context, newExercise);
@@ -156,13 +157,36 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _muscleGroupController,
+                      controller: _muscleGroupController, // Campo do grupo muscular
                       decoration: const InputDecoration(
                         labelText: 'Grupo Muscular (ex: Peito, Costas) *',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) => value == null || value.isEmpty ? 'Campo obrigatório' : null,
                     ),
+                    const SizedBox(height: 16),
+                    
+                    // ADICIONADO: Dropdown de Categoria
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria do Exercício',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'musculacao', child: Text('Musculação (Peso x Reps)')),
+                        DropdownMenuItem(value: 'peso_corporal', child: Text('Peso Corporal (Bw x Reps)')),
+                        DropdownMenuItem(value: 'cardio', child: Text('Cardio (Distância x Tempo)')),
+                      ],
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedCategory = newValue;
+                          });
+                        }
+                      },
+                    ),
+
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _saveExercise,

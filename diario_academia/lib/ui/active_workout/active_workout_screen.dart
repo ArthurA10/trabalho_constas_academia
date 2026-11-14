@@ -48,10 +48,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     }
 
     if (allSetsToSave.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conclua pelo menos uma série para guardar.'),
-      behavior: SnackBarBehavior.floating,
-      margin: EdgeInsets.only(bottom: 10, left: 16, right: 16),
-      ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conclua pelo menos uma série para guardar.'),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 10, left: 16, right: 16),
+        ),
       );
       return;
     }
@@ -91,6 +93,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           final ex = session.exercises[index];
           final sets = session.workoutSets[ex.id!] ?? [];
 
+          // 1. DEFINE OS TEXTOS DINAMICAMENTE COM BASE NA CATEGORIA
+          String labelColuna1 = 'Peso ($pesoLabel)';
+          String labelColuna2 = 'Reps';
+          String erroPreenchimento = 'Preencha o peso e as repetições antes de concluir a série!';
+
+          if (ex.category == 'cardio') {
+            labelColuna1 = 'Distância';
+            labelColuna2 = 'Tempo (min)';
+            erroPreenchimento = 'Preencha a distância e o tempo antes de concluir!';
+          } else if (ex.category == 'peso_corporal') {
+            labelColuna1 = '+ Peso ($pesoLabel)'; // Peso extra (opcional)
+          }
+          
           return Card(
             margin: const EdgeInsets.only(bottom: 24),
             child: Padding(
@@ -102,11 +117,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children:  [
-                      SizedBox(width: 40, child: Text('Série', textAlign: TextAlign.center)),
-                      Expanded(child: Text('Peso ($pesoLabel)', textAlign: TextAlign.center)),
-                      Expanded(child: Text('Reps', textAlign: TextAlign.center)),
-                      SizedBox(width: 48, child: Icon(Icons.check)),
+                    children: [
+                      const SizedBox(width: 40, child: Text('Série', textAlign: TextAlign.center)),
+                      
+                      // 2. USA AS LABELS DINÂMICAS AQUI
+                      Expanded(child: Text(labelColuna1, textAlign: TextAlign.center)),
+                      Expanded(child: Text(labelColuna2, textAlign: TextAlign.center)),
+                      
+                      const SizedBox(width: 48, child: Icon(Icons.check)),
                     ],
                   ),
                   const Divider(),
@@ -114,7 +132,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     final currentSet = sets[setIndex];
 
                     return Padding(
-                      key: ValueKey(currentSet.uiKey),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
@@ -143,49 +160,47 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               ),
                             ),
                           ),
-
+                          
                           if (currentSet.isCompleted == 0)
                             IconButton(
                               icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                               padding: const EdgeInsets.symmetric(horizontal: 4),
-                              constraints: const BoxConstraints(), // Evita que o botão ocupe muito espaço
+                              constraints: const BoxConstraints(),
                               onPressed: () {
                                 ref.read(activeWorkoutSessionProvider.notifier).removeSet(ex.id!, setIndex);
                               },
                             ),
+                            
                           SizedBox(
                             width: 48,
                             child: Checkbox(
                               value: currentSet.isCompleted == 1,
                               onChanged: (val) {
-                              // 1. Se estiver tentando marcar como concluído (val == true)
-                              if (val == true) {
-                                // Valida se o peso e repetições são maiores que zero
-                                if (currentSet.weight <= 0 || currentSet.reps <= 0) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Preencha o peso e as repetições antes de concluir a série!'),
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: EdgeInsets.only(bottom: 10, left: 16, right: 16),
-                                    ),
-                                  );
-                                  return; // Interrompe a execução e não marca a caixa
+                                if (val == true) {
+                                  if (currentSet.weight <= 0 || currentSet.reps <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        // 3. USA A MENSAGEM DE ERRO DINÂMICA AQUI
+                                        content: Text(erroPreenchimento),
+                                        behavior: SnackBarBehavior.floating,
+                                        margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final tempoPadrao = ref.read(settingsProvider).defaultRestTime;
+                                  ref.read(restTimerProvider.notifier).startTimer(tempoPadrao, exerciseName: ex.name);
                                 }
 
-                                // Se passou na validação, dispara o cronômetro de descanso
-                                final tempoPadrao = ref.read(settingsProvider).defaultRestTime;
-                                ref.read(restTimerProvider.notifier).startTimer(tempoPadrao, exerciseName: ex.name);
-                              }
-
-                              // 2. Atualiza o estado da série no provedor (se desmarcou ou se passou na validação)
-                              ref.read(activeWorkoutSessionProvider.notifier).updateSet(
-                                ex.id!,
-                                setIndex,
-                                currentSet.weight,
-                                currentSet.reps,
-                                val == true,
-                              );
-                            },
+                                ref.read(activeWorkoutSessionProvider.notifier).updateSet(
+                                  ex.id!,
+                                  setIndex,
+                                  currentSet.weight,
+                                  currentSet.reps,
+                                  val == true,
+                                );
+                              },
                               activeColor: Colors.green,
                             ),
                           ),

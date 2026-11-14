@@ -35,7 +35,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         muscleGroup TEXT NOT NULL,
         imagePath TEXT,
-        isActive INTEGER NOT NULL DEFAULT 1
+        isActive INTEGER NOT NULL DEFAULT 1,
+        category TEXT DEFAULT 'musculacao'
       )
     ''');
 
