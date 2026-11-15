@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models.dart';
+import 'app_providers.dart';
 
 class ActiveWorkoutSession {
   final bool isRunning;
@@ -46,7 +47,7 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
   ActiveWorkoutSession build() => ActiveWorkoutSession();
 
   void startFreeWorkout() {
-    if (state.isRunning) return; // Retoma se já estiver rodando
+    if (state.isRunning) return;
     state = ActiveWorkoutSession(
       isRunning: true,
       title: 'Treino Livre',
@@ -91,7 +92,22 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
   void addSet(int exerciseId) {
     final newSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
     final currentSets = List<WorkoutSet>.from(newSets[exerciseId]!);
-    currentSets.add(WorkoutSet(workoutId: 0, exerciseId: exerciseId, weight: 0, reps: 0, isCompleted: 0));
+    
+    // Pega o peso e repetição da última série
+    double lastWeight = 0;
+    int lastReps = 0;
+    if (currentSets.isNotEmpty) {
+      lastWeight = currentSets.last.weight;
+      lastReps = currentSets.last.reps;
+    }
+
+    currentSets.add(WorkoutSet(
+      workoutId: 0, 
+      exerciseId: exerciseId, 
+      weight: lastWeight, 
+      reps: lastReps, 
+      isCompleted: 0
+    ));
     newSets[exerciseId] = currentSets;
     state = state.copyWith(workoutSets: newSets);
   }
@@ -100,10 +116,8 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
     final currentSets = List<WorkoutSet>.from(state.workoutSets[exerciseId] ?? []);
     
     if (setIndex >= 0 && setIndex < currentSets.length) {
-      // 1. Pegamos a série exata que já existe na tela
       final oldSet = currentSets[setIndex];
       
-      // 2. Usamos o copyWith! Isso atualiza os números mas MANTÉM o uiKey original intacto.
       currentSets[setIndex] = oldSet.copyWith(
         weight: weight,
         reps: reps,
@@ -122,19 +136,67 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
   }
 
   void removeSet(int exerciseId, int setIndex) {
-    // Cria uma cópia da lista de séries atual para aquele exercício
     final currentSets = List<WorkoutSet>.from(state.workoutSets[exerciseId] ?? []);
     
     if (currentSets.length > setIndex) {
-      currentSets.removeAt(setIndex); // Remove a série desejada
+      currentSets.removeAt(setIndex); 
       
-      // Cria um novo mapa atualizado
       final updatedWorkoutSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
       updatedWorkoutSets[exerciseId] = currentSets;
       
-      // Atualiza o estado para forçar a tela a redesenhar
       state = state.copyWith(workoutSets: updatedWorkoutSets);
     }
+  }
+
+  void removeExercise(int exerciseId) {
+    final updatedExercises = state.exercises.where((e) => e.id != exerciseId).toList();
+    
+    final updatedSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
+    updatedSets.remove(exerciseId);
+    
+    state = state.copyWith(
+      exercises: updatedExercises,
+      workoutSets: updatedSets,
+    );
+  }
+
+  // 9. Finaliza e salva o treino
+  Future<bool> finishWorkout() async {
+    if (state.startTime == null) return false;
+
+    // Filtra APENAS as séries que foram concluídas (isCompleted == 1)
+    List<WorkoutSet> allSetsToSave = [];
+    for (var sets in state.workoutSets.values) {
+      allSetsToSave.addAll(
+        sets.where((s) => s.isCompleted == 1 && s.weight > 0 && s.reps > 0),
+      );
+    }
+
+    // Se o usuário não concluiu nenhuma série válida, retornamos false
+    if (allSetsToSave.isEmpty) {
+      return false;
+    }
+
+    final endTime = DateTime.now();
+    final routineName = state.routine?.name ?? state.title;
+
+    // Acessa o repositório nativamente com ref.read para salvar o Histórico
+    await ref.read(databaseRepositoryProvider).saveWorkout(
+      routineName,
+      state.startTime!,
+      endTime,
+      allSetsToSave,
+    );
+
+    // Salva a nova lista de exercícios na rotina original (caso tenha editado)
+    if (state.routine != null) {
+      final exerciseIds = state.exercises.map((e) => e.id!).toList();
+      await ref.read(databaseRepositoryProvider).updateRoutineExercises(state.routine!.id!, exerciseIds);
+    }
+
+    // Limpa a tela de treino ativo:
+    discardWorkout(); 
+    return true;
   }
 }
 

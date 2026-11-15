@@ -34,8 +34,8 @@ class DatabaseRepository {
       final routineId = await txn.insert('routines', {'name': name});
       for (var ex in exercises) {
         await txn.insert('routine_exercises', {
-          'routineId': routineId,
-          'exerciseId': ex.id,
+          'routine_id': routineId,
+          'exercise_id': ex.id,
         });
       }
     });
@@ -46,8 +46,8 @@ class DatabaseRepository {
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       '''
       SELECT e.* FROM exercises e
-      INNER JOIN routine_exercises re ON e.id = re.exerciseId
-      WHERE re.routineId = ?
+      INNER JOIN routine_exercises re ON e.id = re.exercise_id
+      WHERE re.routine_id = ?
     ''',
       [routineId],
     );
@@ -154,6 +154,18 @@ class DatabaseRepository {
       await txn.delete('workouts');
     });
   }
+
+  Future<void> addBodyWeight(double weight) async {
+    await DatabaseHelper.instance.insertBodyWeight(weight);
+  }
+
+  Future<List> getBodyWeights() async {
+    return await DatabaseHelper.instance.getBodyWeights();
+  }
+
+  Future<void> updateRoutineExercises(int routineId, List<int> exerciseIds) async {
+    await DatabaseHelper.instance.updateRoutineExercises(routineId, exerciseIds);
+  }
 }  //DatabaseRepository
 
 final totalWorkoutsProvider = FutureProvider<int>((ref) async {
@@ -164,4 +176,49 @@ final totalWorkoutsProvider = FutureProvider<int>((ref) async {
 final totalVolumeProvider = FutureProvider<double>((ref) async {
   final repo = DatabaseRepository();
   return await repo.getTotalVolume();
+});
+
+// 1. Provedor que guarda o filtro atual (Padrão: 30 dias. O valor 0 significa "Todo o período")
+class ChartTimeFilter extends Notifier<int> {
+  @override
+  int build() => 30; // 30 dias é o padrão
+
+  void setFilter(int days) {
+    state = days;
+  }
+}
+
+final chartTimeFilterProvider = NotifierProvider<ChartTimeFilter, int>(() {
+  return ChartTimeFilter();
+});
+
+// 2. Provedor de Peso Corporal com filtro
+final bodyWeightProvider = FutureProvider<List>((ref) async {
+  final rawData = await ref.read(databaseRepositoryProvider).getBodyWeights();
+
+  // Convertendo a lista para o tipo correto para evitar erros de cast
+  final allData = rawData.map((e) => e as Map<String, dynamic>).toList();
+  final days = ref.watch(chartTimeFilterProvider);
+  
+  if (days == 0) return allData; // Se for 0, retorna tudo
+  
+  final cutoff = DateTime.now().subtract(Duration(days: days));
+  return allData.where((row) {
+    final date = DateTime.parse(row['date'] as String);
+    return date.isAfter(cutoff);
+  }).toList();
+});
+
+// 3. Provedor de Volume (Força) com filtro
+final volumeChartProvider = FutureProvider<List>((ref) async {
+  final allData = await DatabaseHelper.instance.getVolumeData();
+  final days = ref.watch(chartTimeFilterProvider);
+  
+  if (days == 0) return allData;
+  
+  final cutoff = DateTime.now().subtract(Duration(days: days));
+  return allData.where((row) {
+    final date = DateTime.parse(row['date'] as String); // 'YYYY-MM-DD'
+    return date.isAfter(cutoff);
+  }).toList();
 });

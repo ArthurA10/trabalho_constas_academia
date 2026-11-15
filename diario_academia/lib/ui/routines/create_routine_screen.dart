@@ -28,14 +28,35 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
 
     setState(() => _isSaving = true);
     
-    await ref.read(databaseRepositoryProvider).createRoutineWithExercises(
-      _nameController.text.trim(),
-      _selectedExercises,
-    );
-    
-    // Atualiza a lista de rotinas na tela anterior
-    ref.invalidate(routinesProvider);
-    if (mounted) Navigator.pop(context);
+    try {
+      // Tenta salvar no banco de dados
+      await ref.read(databaseRepositoryProvider).createRoutineWithExercises(
+        _nameController.text.trim(),
+        _selectedExercises,
+      );
+      
+      // Se deu tudo certo, atualiza a lista e fecha a tela
+      ref.invalidate(routinesProvider);
+      if (mounted) Navigator.pop(context);
+
+    } catch (e, stackTrace) {
+      // Se der erro, ele cai aqui!
+      print('=== ERRO AO SALVAR ROTINA ===');
+      print(e);
+      print(stackTrace);
+      
+      // Mostra o erro na tela para você saber o que houve
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar: $e')),
+        );
+      }
+    } finally {
+      // Isso garante que a bolinha de carregamento pare de girar, dando erro ou não
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
