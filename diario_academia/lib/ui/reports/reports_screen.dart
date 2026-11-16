@@ -143,9 +143,11 @@ class ReportsScreen extends ConsumerWidget {
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
+                                interval: 1,
                                 getTitlesWidget: (value, meta) {
-                                  if (value.toInt() >= data.length)
-                                    return const Text('');
+                                  // Se o valor não for um número inteiro exato, esconde o texto
+                                  if (value % 1 != 0) return const SizedBox.shrink();
+                                  
                                   final dateStr =
                                       data[value.toInt()]['date'] as String;
                                   final date = DateTime.parse(dateStr);
@@ -255,15 +257,19 @@ class ReportsScreen extends ConsumerWidget {
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
+                                interval: 1,
                                 getTitlesWidget: (value, meta) {
-                                  if (value.toInt() >= data.length)
-                                    return const Text('');
+                                  //Se o valor não for um número inteiro exato, esconde o texto
+                                  if (value % 1 != 0) return const SizedBox.shrink();
 
-                                  final dateStr =
-                                      data[value.toInt()]['date'] as String;
+                                  final index = value.toInt();
+                                  if (index < 0 || index >= data.length) return const Text('');
+
+                                  final dateStr = data[index]['date'] as String;
                                   final dateParts = dateStr.split('-');
-                                  if (dateParts.length != 3)
+                                  if (dateParts.length != 3){
                                     return const Text('');
+                                  }
 
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 8.0),

@@ -63,7 +63,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         // Se salvou com sucesso, para o cronômetro, atualiza as telas e volta pro início
         ref.read(restTimerProvider.notifier).stopTimer();
         ref.invalidate(historyProvider);
-        // ref.invalidate(volumeChartProvider); // Descomente se tiver o gráfico de volume
+
+        ref.invalidate(volumeProvider); //Atualiza o somatório total
+        ref.invalidate(volumeChartProvider); // Atualiza o gráfico
 
         if (mounted) {
           // Fecha a tela de treino e volta para a tela principal (Home)
