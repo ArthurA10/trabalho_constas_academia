@@ -117,13 +117,13 @@ class DatabaseHelper {
       },
       {
         'name': 'Agachamento Livre',
-        'muscleGroup': 'Pernas',
+        'muscleGroup': 'Quadríceps',
         'imagePath': 'assets/gifs/agachamento_livre.gif',
         'isActive': 1,
       },
       {
         'name': 'Levantamento Terra',
-        'muscleGroup': 'Costas',
+        'muscleGroup': 'Quadríceps',
         'imagePath': 'assets/gifs/terra.gif',
         'isActive': 1,
       },
@@ -159,13 +159,13 @@ class DatabaseHelper {
       },
       {
         'name': 'Mesa Flexora',
-        'muscleGroup': 'Posterior de Coxa',
+        'muscleGroup': 'Posterior',
         'imagePath': 'assets/gifs/flexora.gif',
         'isActive': 1,
       },
       {
         'name': 'Stiff',
-        'muscleGroup': 'Posterior de Coxa',
+        'muscleGroup': 'Posterior',
         'imagePath': 'assets/gifs/stiff.gif',
         'isActive': 1,
       },
@@ -195,14 +195,32 @@ class DatabaseHelper {
       },
       {
         'name': 'Elevação Lateral com Halteres',
-        'muscleGroup': 'Ombro',
+        'muscleGroup': 'Ombros',
         'imagePath': 'assets/gifs/elevacao_lateral.gif',
         'isActive': 1,
       },
       {
         'name': 'Desenvolvimento Ombro Máquina',
-        'muscleGroup': 'Ombro',
+        'muscleGroup': 'Ombros',
         'imagePath': 'assets/gifs/desenvolvimento_ombro.gif',
+        'isActive': 1,
+      },
+      {
+        'name': 'Abdominal Supra',
+        'muscleGroup': 'Abdômen',
+        'imagePath': 'assets/gifs/abdominal_supra.gif',
+        'isActive': 1,
+      },
+      {
+        'name': 'Elevação Pélvica',
+        'muscleGroup': 'Glúteos',
+        'imagePath': 'assets/gifs/elevacao_pelvica.gif',
+        'isActive': 1,
+      },
+      {
+        'name': 'Extensão de Punho',
+        'muscleGroup': 'Antebraço',
+        'imagePath': 'assets/gifs/extensao_punho.gif',
         'isActive': 1,
       },
     ];

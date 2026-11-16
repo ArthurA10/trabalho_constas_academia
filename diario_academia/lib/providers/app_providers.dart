@@ -24,6 +24,19 @@ final routinesProvider = FutureProvider<List<Routine>>((ref) async {
 
 final databaseRepositoryProvider = Provider((ref) => DatabaseRepository());
 
+class ExerciseFilter extends Notifier<String> {
+  @override
+  String build() => 'Todos'; // Estado inicial
+
+  void setFilter(String filter) {
+    state = filter;
+  }
+}
+
+final exerciseFilterProvider = NotifierProvider<ExerciseFilter, String>(() {
+  return ExerciseFilter();
+});
+
 class DatabaseRepository {
   Future<void> createRoutineWithExercises(
     String name,

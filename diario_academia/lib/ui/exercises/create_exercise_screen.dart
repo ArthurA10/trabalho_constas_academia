@@ -1,9 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../../data/database_helper.dart';
@@ -12,15 +14,35 @@ class CreateExerciseScreen extends ConsumerStatefulWidget {
   const CreateExerciseScreen({super.key});
 
   @override
-  ConsumerState<CreateExerciseScreen> createState() => _CreateExerciseScreenState();
+  ConsumerState<CreateExerciseScreen> createState() =>
+      _CreateExerciseScreenState();
 }
 
 class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
   String _selectedCategory = 'musculacao'; // Variável da categoria
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _muscleGroupController = TextEditingController(); // O controlador do grupo muscular está aqui
-  
+  final _muscleGroupController =
+      TextEditingController(); // O controlador do grupo muscular está aqui
+
+  String? _selectedMuscleGroup;
+
+  //Lista exata de categorias de grupo muscular
+  final List<String> _categorias = [
+    'Peito',
+    'Costas',
+    'Quadríceps',
+    'Posterior',
+    'Glúteos',
+    'Ombros',
+    'Bíceps',
+    'Tríceps',
+    'Panturrilha',
+    'Antebraço',
+    'Abdômen',
+    'Cardio',
+  ];
+
   File? _selectedImage;
   bool _isSaving = false;
 
@@ -38,9 +60,10 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
   Future<String?> _saveImagePermanently(File imageFile) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${path.basename(imageFile.path)}';
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${path.basename(imageFile.path)}';
       final savedImage = File('${directory.path}/$fileName');
-      
+
       await imageFile.copy(savedImage.path);
       return savedImage.path;
     } catch (e) {
@@ -61,7 +84,8 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
 
     final newExercise = Exercise(
       name: _nameController.text.trim(),
-      muscleGroup: _muscleGroupController.text.trim(), // Salvando o grupo muscular
+      muscleGroup: _muscleGroupController.text
+          .trim(), // Salvando o grupo muscular
       imagePath: permanentImagePath,
       isActive: 1,
       category: _selectedCategory, // ADICIONADO: Salvando a categoria (Musculação ou Cardio)
@@ -139,9 +163,16 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
-                                  Icon(Icons.add_a_photo, size: 48, color: Colors.grey),
+                                  Icon(
+                                    Icons.add_a_photo,
+                                    size: 48,
+                                    color: Colors.grey,
+                                  ),
                                   SizedBox(height: 8),
-                                  Text('Adicionar Foto do Equipamento', style: TextStyle(color: Colors.grey)),
+                                  Text(
+                                    'Adicionar Foto do Equipamento',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
                                 ],
                               ),
                       ),
@@ -153,19 +184,37 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
                         labelText: 'Nome do Exercício *',
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) => value == null || value.isEmpty ? 'Campo obrigatório' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Campo obrigatório'
+                          : null,
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _muscleGroupController, // Campo do grupo muscular
+                    DropdownButtonFormField<String>(
+                      value: _selectedMuscleGroup,
                       decoration: const InputDecoration(
-                        labelText: 'Grupo Muscular (ex: Peito, Costas) *',
+                        labelText: 'Grupo Muscular',
                         border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.accessibility_new),
                       ),
-                      validator: (value) => value == null || value.isEmpty ? 'Campo obrigatório' : null,
+                      items: _categorias.map((String categoria) {
+                        return DropdownMenuItem<String>(
+                          value: categoria,
+                          child: Text(categoria),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedMuscleGroup = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Campo obrigatório';
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 16),
-                    
+
                     // ADICIONADO: Dropdown de Categoria
                     DropdownButtonFormField<String>(
                       value: _selectedCategory,
@@ -174,9 +223,14 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'musculacao', child: Text('Musculação (Peso x Reps)')),
-                        DropdownMenuItem(value: 'peso_corporal', child: Text('Peso Corporal (Bw x Reps)')),
-                        DropdownMenuItem(value: 'cardio', child: Text('Cardio (Distância x Tempo)')),
+                        DropdownMenuItem(
+                          value: 'musculacao',
+                          child: Text('Musculação (Peso x Reps)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'cardio',
+                          child: Text('Cardio (Distância x Tempo)'),
+                        ),
                       ],
                       onChanged: (String? newValue) {
                         if (newValue != null) {
@@ -190,8 +244,13 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _saveExercise,
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                      child: const Text('SALVAR EXERCÍCIO', style: TextStyle(fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'SALVAR EXERCÍCIO',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                   ],
                 ),

@@ -1,9 +1,9 @@
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models.dart';
 import '../../data/database_helper.dart';
-import '../exercises/create_exercise_screen.dart';
+import '../../providers/app_providers.dart'; 
 
 // Provider temporário para carregar a lista nesta tela
 final activeExercisesProvider = FutureProvider.autoDispose<List<Exercise>>((ref) async {
@@ -37,92 +37,83 @@ class SelectExerciseScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final exercisesAsyncValue = ref.watch(activeExercisesProvider);
+    // Corrigido para chamar o provider definido no topo deste arquivo
+    final exercisesAsync = ref.watch(activeExercisesProvider); 
+    final currentFilter = ref.watch(exerciseFilterProvider);
+
+    // Defina as categorias conforme estão salvas no seu banco de dados
+    final categories = ['Todos', 'Peito', 'Costas', 'Quadríceps', 'Posterior', 'Glúteos', 'Ombros', 'Bíceps', 'Tríceps', 'Panturrilha', 'Antebraço', 'Abdômen'];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Selecionar Exercício'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              // Abre a tela de criação
-              final newExercise = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateExerciseScreen()),
-              );
-              // Se voltou com um exercício novo, recarrega a lista
-              if (newExercise != null) {
-                ref.invalidate(activeExercisesProvider);
-              }
-            },
-          )
-        ],
       ),
-      body: exercisesAsyncValue.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Erro: $err')),
-        data: (exercises) {
-          if (exercises.isEmpty) {
-            return const Center(child: Text('Nenhum exercício encontrado.'));
-          }
-
-          return ListView.builder(
-            itemCount: exercises.length,
-            itemBuilder: (context, index) {
-              final ex = exercises[index];
-              final hasImage = ex.imagePath != null && ex.imagePath!.isNotEmpty;
-              final isAsset = hasImage && ex.imagePath!.startsWith('assets/');
-
-              // Função para mostrar a imagem/GIF ampliada num popup
-              void showFullImage() {
-                if (!hasImage) return;
-                showDialog(
-                  context: context,
-                  builder: (ctx) => Dialog(
-                    backgroundColor: Colors.transparent,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: isAsset
-                          ? Image.asset(ex.imagePath!, fit: BoxFit.contain)
-                          : Image.file(File(ex.imagePath!), fit: BoxFit.contain),
-                    ),
+      body: Column(
+        children: [
+          // --- BARRA DE FILTROS HORIZONTAL ---
+          SizedBox(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(category),
+                    selected: currentFilter == category,
+                    onSelected: (selected) {
+                      if (selected) {
+                        // Atualizado para usar o padrão Notifier moderno
+                        ref.read(exerciseFilterProvider.notifier).setFilter(category);
+                      }
+                    },
                   ),
                 );
-              }
+              },
+            ),
+          ),
+          
+          // --- LISTA DE EXERCÍCIOS FILTRADA ---
+          Expanded(
+            child: exercisesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Erro: $err')),
+              data: (allExercises) {
+                // Aplica o filtro na lista que veio do banco
+                final filteredExercises = currentFilter == 'Todos'
+                    ? allExercises
+                    : allExercises.where((e) => e.muscleGroup == currentFilter).toList();
 
-              return ListTile(
-                leading: GestureDetector(
-                  onTap: showFullImage, // Amplia ao clicar na foto
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    clipBehavior: Clip.hardEdge,
-                    child: hasImage
-                        ? (isAsset
-                            ? Image.asset(ex.imagePath!, fit: BoxFit.cover)
-                            : Image.file(File(ex.imagePath!), fit: BoxFit.cover))
-                        : const Icon(Icons.fitness_center, color: Colors.grey),
-                  ),
-                ),
-                title: Text(ex.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(ex.muscleGroup),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => _deleteExercise(context, ref, ex),
-                ),
-                onTap: () {
-                  // Retorna o exercício escolhido ao clicar no NOME (e não na foto)
-                  Navigator.pop(context, ex);
-                },
-              );
-            },
-          );
-        },
+                if (filteredExercises.isEmpty) {
+                  return const Center(child: Text('Nenhum exercício encontrado.'));
+                }
+
+                return ListView.builder(
+                  itemCount: filteredExercises.length,
+                  itemBuilder: (context, index) {
+                    final exercise = filteredExercises[index];
+                    return ListTile(
+                      title: Text(exercise.name),
+                      subtitle: Text(exercise.muscleGroup),
+                      // Botão de deletar adicionado para utilizar a função _deleteExercise
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () => _deleteExercise(context, ref, exercise),
+                      ),
+                      onTap: () {
+                        // Retorna o exercício selecionado para a tela anterior
+                        Navigator.pop(context, exercise);
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
