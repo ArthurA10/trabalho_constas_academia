@@ -1,28 +1,41 @@
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../data/models.dart';
 import '../../data/database_helper.dart';
-import '../../providers/app_providers.dart'; 
+import '../../providers/app_providers.dart';
 
 // Provider temporário para carregar a lista nesta tela
-final activeExercisesProvider = FutureProvider.autoDispose<List<Exercise>>((ref) async {
+final activeExercisesProvider = FutureProvider.autoDispose<List<Exercise>>((
+  ref,
+) async {
   return await DatabaseHelper.instance.getActiveExercises();
 });
 
 class SelectExerciseScreen extends ConsumerWidget {
   const SelectExerciseScreen({super.key});
 
-  void _deleteExercise(BuildContext context, WidgetRef ref, Exercise exercise) async {
+  void _deleteExercise(
+    BuildContext context,
+    WidgetRef ref,
+    Exercise exercise,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Apagar Exercício?'),
-        content: Text('Tem certeza que deseja apagar "${exercise.name}"? Os treinos antigos não serão afetados.'),
+        content: Text(
+          'Tem certeza que deseja apagar "${exercise.name}"? Os treinos antigos não serão afetados.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true), 
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCELAR'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('APAGAR', style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -35,19 +48,42 @@ class SelectExerciseScreen extends ConsumerWidget {
     }
   }
 
+  Widget _buildFallbackIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.fitness_center, color: Colors.grey),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Corrigido para chamar o provider definido no topo deste arquivo
-    final exercisesAsync = ref.watch(activeExercisesProvider); 
+    final exercisesAsync = ref.watch(activeExercisesProvider);
     final currentFilter = ref.watch(exerciseFilterProvider);
 
     // Defina as categorias conforme estão salvas no seu banco de dados
-    final categories = ['Todos', 'Peito', 'Costas', 'Quadríceps', 'Posterior', 'Glúteos', 'Ombros', 'Bíceps', 'Tríceps', 'Panturrilha', 'Antebraço', 'Abdômen'];
+    final categories = [
+      'Todos',
+      'Peito',
+      'Costas',
+      'Quadríceps',
+      'Posterior',
+      'Glúteos',
+      'Ombros',
+      'Bíceps',
+      'Tríceps',
+      'Panturrilha',
+      'Antebraço',
+      'Abdômen',
+    ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Selecionar Exercício'),
-      ),
+      appBar: AppBar(title: const Text('Selecionar Exercício')),
       body: Column(
         children: [
           // --- BARRA DE FILTROS HORIZONTAL ---
@@ -67,7 +103,9 @@ class SelectExerciseScreen extends ConsumerWidget {
                     onSelected: (selected) {
                       if (selected) {
                         // Atualizado para usar o padrão Notifier moderno
-                        ref.read(exerciseFilterProvider.notifier).setFilter(category);
+                        ref
+                            .read(exerciseFilterProvider.notifier)
+                            .setFilter(category);
                       }
                     },
                   ),
@@ -75,7 +113,7 @@ class SelectExerciseScreen extends ConsumerWidget {
               },
             ),
           ),
-          
+
           // --- LISTA DE EXERCÍCIOS FILTRADA ---
           Expanded(
             child: exercisesAsync.when(
@@ -85,10 +123,14 @@ class SelectExerciseScreen extends ConsumerWidget {
                 // Aplica o filtro na lista que veio do banco
                 final filteredExercises = currentFilter == 'Todos'
                     ? allExercises
-                    : allExercises.where((e) => e.muscleGroup == currentFilter).toList();
+                    : allExercises
+                          .where((e) => e.muscleGroup == currentFilter)
+                          .toList();
 
                 if (filteredExercises.isEmpty) {
-                  return const Center(child: Text('Nenhum exercício encontrado.'));
+                  return const Center(
+                    child: Text('Nenhum exercício encontrado.'),
+                  );
                 }
 
                 return ListView.builder(
@@ -96,12 +138,40 @@ class SelectExerciseScreen extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final exercise = filteredExercises[index];
                     return ListTile(
+                      // --- NOVIDADE: IMAGEM DO EXERCÍCIO AQUI ---
+                      leading: (exercise.imagePath != null && exercise.imagePath!.isNotEmpty)
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: exercise.imagePath!.startsWith('assets/')
+                                  ? Image.asset(
+                                      exercise.imagePath!,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                      // Se a imagem não for encontrada, mostra o ícone padrão sem quebrar o app
+                                      errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+                                    )
+                                  : Image.file(
+                                      File(exercise.imagePath!),
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                      // Se o arquivo da foto foi apagado do celular, não quebra o app
+                                      errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+                                    ),
+                            )
+                          : _buildFallbackIcon(),
+
                       title: Text(exercise.name),
                       subtitle: Text(exercise.muscleGroup),
                       // Botão de deletar adicionado para utilizar a função _deleteExercise
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () => _deleteExercise(context, ref, exercise),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () =>
+                            _deleteExercise(context, ref, exercise),
                       ),
                       onTap: () {
                         // Retorna o exercício selecionado para a tela anterior

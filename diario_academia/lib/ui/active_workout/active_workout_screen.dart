@@ -122,13 +122,23 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 builder: (context) => AlertDialog(
                   title: const Text('Finalizar Treino?'),
                   content: const Text('Deseja concluir e salvar este treino?'),
+                  actionsAlignment: MainAxisAlignment.end, // <-- Adicionado para alinhar lado a lado
                   actions: [
-                    TextButton(
+                    ElevatedButton(
                       onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      ),
                       child: const Text('Cancelar'),
                     ),
+
+                    const SizedBox(height: 12),
+
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18), 
+                      ),
                       child: const Text('Finalizar'),
                     ),
                   ],

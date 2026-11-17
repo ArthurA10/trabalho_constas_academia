@@ -22,8 +22,6 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
   String _selectedCategory = 'musculacao'; // Variável da categoria
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _muscleGroupController =
-      TextEditingController(); // O controlador do grupo muscular está aqui
 
   String? _selectedMuscleGroup;
 
@@ -84,8 +82,7 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
 
     final newExercise = Exercise(
       name: _nameController.text.trim(),
-      muscleGroup: _muscleGroupController.text
-          .trim(), // Salvando o grupo muscular
+      muscleGroup: _selectedMuscleGroup ?? '',
       imagePath: permanentImagePath,
       isActive: 1,
       category: _selectedCategory, // ADICIONADO: Salvando a categoria (Musculação ou Cardio)
@@ -131,7 +128,6 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _muscleGroupController.dispose();
     super.dispose();
   }
 
@@ -214,6 +210,9 @@ class _CreateExerciseScreenState extends ConsumerState<CreateExerciseScreen> {
                         return null;
                       },
                     ),
+
+                    //adicionado para aumentar o espaçamento entre os dois
+                    const SizedBox(height: 24),
 
                     // ADICIONADO: Dropdown de Categoria
                     DropdownButtonFormField<String>(
