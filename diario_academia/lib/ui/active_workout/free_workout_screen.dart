@@ -7,6 +7,7 @@ import '../../providers/rest_timer_provider.dart';
 import '../../providers/active_workout_session_provider.dart';
 import '../widgets/rest_timer_widget.dart';
 import '../../providers/settings_provider.dart';
+import 'dart:io';
 
 class FreeWorkoutScreen extends ConsumerStatefulWidget {
   const FreeWorkoutScreen({super.key});
@@ -107,6 +108,7 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
               padding: const EdgeInsets.all(16),
               itemCount: session.exercises.length,
               itemBuilder: (context, index) {
+
                 final ex = session.exercises[index];
                 final sets = session.workoutSets[ex.id!] ?? [];
 
@@ -129,12 +131,78 @@ class _FreeWorkoutScreenState extends ConsumerState<FreeWorkoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          ex.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // 1. Imagem Redonda Segura
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12.0),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                clipBehavior: Clip.hardEdge,
+                                child: (ex.imagePath != null && ex.imagePath!.isNotEmpty)
+                                    ? (ex.imagePath!.startsWith('assets/')
+                                        ? Image.asset(
+                                            ex.imagePath!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.fitness_center, size: 20, color: Colors.grey),
+                                          )
+                                        : Image.file(
+                                            File(ex.imagePath!),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.fitness_center, size: 20, color: Colors.grey),
+                                          ))
+                                    : const Icon(Icons.fitness_center, size: 20, color: Colors.grey),
+                              ),
+                            ),
+                            
+                            // 2. Nome do Exercício
+                            Expanded(
+                              child: Text(
+                                ex.name,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            
+                            // 3. Botão de Remover (X)
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                              tooltip: 'Remover Exercício',
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Remover exercício?'),
+                                    content: Text('Deseja remover ${ex.name} deste treino livre?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          ref.read(activeWorkoutSessionProvider.notifier).removeExercise(ex.id!);
+                                          Navigator.pop(ctx);
+                                        },
+                                        child: const Text(
+                                          'Remover', 
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                         const Divider(),
                         ...List.generate(sets.length, (setIndex) {

@@ -15,7 +15,7 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ref.watch faz com que o ecrã atualize quando novos treinos forem guardados
+    // ref.watch faz com que a tela atualize quando novos treinos forem guardados
     final historyAsync = ref.watch(historyProvider);
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 

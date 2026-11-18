@@ -128,7 +128,7 @@ class WorkoutSet {
     workoutId: map['workoutId'],
     exerciseId: map['exerciseId'],
     exerciseNameSnapshot: map['exerciseNameSnapshot'],
-    weight: map['weight'],
+    weight: (map['weight'] as num).toDouble(),
     reps: map['reps'],
     isCompleted: map['isCompleted'],
   );

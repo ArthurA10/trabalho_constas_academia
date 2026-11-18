@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'dart:io';
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/rest_timer_provider.dart';
@@ -208,10 +208,38 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // CABEÇALHO DO EXERCÍCIO COM BOTÃO DE REMOVER (X)
+                  // CABEÇALHO DO EXERCÍCIO COM BOTÃO DE REMOVER (X) E IMAGEM
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // --- INÍCIO DA ADIÇÃO: IMAGEM REDONDA ---
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            shape: BoxShape.circle, // Deixa perfeitamente redondo
+                          ),
+                          clipBehavior: Clip.hardEdge, // Corta a imagem no formato do círculo
+                          child: (ex.imagePath != null && ex.imagePath!.isNotEmpty)
+                              ? (ex.imagePath!.startsWith('assets/')
+                                  ? Image.asset(
+                                      ex.imagePath!,
+                                      fit: BoxFit.cover,
+                                      // Se der erro ao carregar o asset, mostra o ícone
+                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.fitness_center, size: 20, color: Colors.grey),
+                                    )
+                                  : Image.file(
+                                      File(ex.imagePath!),
+                                      fit: BoxFit.cover,
+                                      // Se der erro ao carregar a foto, mostra o ícone
+                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.fitness_center, size: 20, color: Colors.grey),
+                                    ))
+                              : const Icon(Icons.fitness_center, size: 20, color: Colors.grey), // Ícone padrão se não tiver imagem
+                        ),
+                      ),
                       Expanded(
                         child: Text(
                           ex.name,

@@ -1,11 +1,13 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models.dart';
 import 'app_providers.dart';
 
 class ActiveWorkoutSession {
   final bool isRunning;
   final String title;
-  final String type; 
+  final String type;
   final Routine? routine;
   final DateTime? startTime;
   final List<Exercise> exercises;
@@ -40,12 +42,61 @@ class ActiveWorkoutSession {
       workoutSets: workoutSets ?? this.workoutSets,
     );
   }
+
+  // --- ADIÇÃO: Métodos para converter o Treino em JSON e vice-versa ---
+  Map<String, dynamic> toMap() => {
+        'isRunning': isRunning,
+        'title': title,
+        'type': type,
+        'routine': routine?.toMap(),
+        'startTime': startTime?.toIso8601String(),
+        'exercises': exercises.map((e) => e.toMap()).toList(),
+        // O JSON só aceita Strings como chaves de Map, então convertemos o ID do exercício (int) para String
+        'workoutSets': workoutSets.map((key, value) => MapEntry(key.toString(), value.map((s) => s.toMap()).toList())),
+      };
+
+  factory ActiveWorkoutSession.fromMap(Map<String, dynamic> map) => ActiveWorkoutSession(
+        isRunning: map['isRunning'] ?? false,
+        title: map['title'] ?? '',
+        type: map['type'] ?? '',
+        routine: map['routine'] != null ? Routine.fromMap(map['routine']) : null,
+        startTime: map['startTime'] != null ? DateTime.parse(map['startTime']) : null,
+        exercises: (map['exercises'] as List?)?.map((e) => Exercise.fromMap(e)).toList() ?? [],
+        workoutSets: (map['workoutSets'] as Map<String, dynamic>?)?.map((key, value) => MapEntry(
+              int.parse(key),
+              (value as List).map((s) => WorkoutSet.fromMap(s)).toList(),
+            )) ?? {},
+      );
 }
 
 class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
-  @override
-  ActiveWorkoutSession build() => ActiveWorkoutSession();
+  static const _draftKey = 'active_workout_draft';
 
+  @override
+  ActiveWorkoutSession build() {
+    _loadDraft(); // Carrega automaticamente se o app foi fechado no meio do treino
+    return ActiveWorkoutSession();
+  }
+
+  // --- LÓGICA DO RASCUNHO ---
+  Future<void> _loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final draftStr = prefs.getString(_draftKey);
+    if (draftStr != null) {
+      state = ActiveWorkoutSession.fromMap(jsonDecode(draftStr));
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (state.isRunning) {
+      await prefs.setString(_draftKey, jsonEncode(state.toMap()));
+    } else {
+      await prefs.remove(_draftKey); // Limpa o rascunho se não houver treino rodando
+    }
+  }
+
+  // --- MÉTODOS DO TREINO ---
   void startFreeWorkout() {
     if (state.isRunning) return;
     state = ActiveWorkoutSession(
@@ -56,6 +107,7 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
       exercises: [],
       workoutSets: {},
     );
+    _saveDraft();
   }
 
   void startRoutineWorkout(Routine routine, List<Exercise> exercises) {
@@ -77,6 +129,7 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
       exercises: exercises,
       workoutSets: initialSets,
     );
+    _saveDraft();
   }
 
   void addExercise(Exercise exercise) {
@@ -87,13 +140,13 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
       WorkoutSet(workoutId: 0, exerciseId: exercise.id!, weight: 0, reps: 0, isCompleted: 0)
     ];
     state = state.copyWith(exercises: newExercises, workoutSets: newSets);
+    _saveDraft();
   }
 
   void addSet(int exerciseId) {
     final newSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
     final currentSets = List<WorkoutSet>.from(newSets[exerciseId]!);
-    
-    // Pega o peso e repetição da última série
+
     double lastWeight = 0;
     int lastReps = 0;
     if (currentSets.isNotEmpty) {
@@ -102,69 +155,72 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
     }
 
     currentSets.add(WorkoutSet(
-      workoutId: 0, 
-      exerciseId: exerciseId, 
-      weight: lastWeight, 
-      reps: lastReps, 
-      isCompleted: 0
+      workoutId: 0,
+      exerciseId: exerciseId,
+      weight: lastWeight,
+      reps: lastReps,
+      isCompleted: 0,
     ));
     newSets[exerciseId] = currentSets;
     state = state.copyWith(workoutSets: newSets);
+    _saveDraft();
   }
 
   void updateSet(int exerciseId, int setIndex, double weight, int reps, bool isCompleted) {
     final currentSets = List<WorkoutSet>.from(state.workoutSets[exerciseId] ?? []);
-    
+
     if (setIndex >= 0 && setIndex < currentSets.length) {
       final oldSet = currentSets[setIndex];
-      
+
       currentSets[setIndex] = oldSet.copyWith(
         weight: weight,
         reps: reps,
         isCompleted: isCompleted ? 1 : 0,
       );
-      
+
       final updatedWorkoutSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
       updatedWorkoutSets[exerciseId] = currentSets;
-      
-      state = state.copyWith(workoutSets: updatedWorkoutSets);
-    }
-  }
 
-  void discardWorkout() {
-    state = ActiveWorkoutSession();
+      state = state.copyWith(workoutSets: updatedWorkoutSets);
+      _saveDraft(); // Salva a cada alteração de peso/check
+    }
   }
 
   void removeSet(int exerciseId, int setIndex) {
     final currentSets = List<WorkoutSet>.from(state.workoutSets[exerciseId] ?? []);
-    
+
     if (currentSets.length > setIndex) {
-      currentSets.removeAt(setIndex); 
-      
+      currentSets.removeAt(setIndex);
+
       final updatedWorkoutSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
       updatedWorkoutSets[exerciseId] = currentSets;
-      
+
       state = state.copyWith(workoutSets: updatedWorkoutSets);
+      _saveDraft();
     }
   }
 
   void removeExercise(int exerciseId) {
     final updatedExercises = state.exercises.where((e) => e.id != exerciseId).toList();
-    
+
     final updatedSets = Map<int, List<WorkoutSet>>.from(state.workoutSets);
     updatedSets.remove(exerciseId);
-    
+
     state = state.copyWith(
       exercises: updatedExercises,
       workoutSets: updatedSets,
     );
+    _saveDraft();
   }
 
-  // 9. Finaliza e salva o treino
+  void discardWorkout() {
+    state = ActiveWorkoutSession();
+    _saveDraft(); // Como o state não está mais rodando, o _saveDraft vai apagar a memória cache
+  }
+
   Future<bool> finishWorkout() async {
     if (state.startTime == null) return false;
 
-    // Filtra APENAS as séries que foram concluídas (isCompleted == 1)
     List<WorkoutSet> allSetsToSave = [];
     for (var sets in state.workoutSets.values) {
       allSetsToSave.addAll(
@@ -172,15 +228,11 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
       );
     }
 
-    // Se o usuário não concluiu nenhuma série válida, retornamos false
-    if (allSetsToSave.isEmpty) {
-      return false;
-    }
+    if (allSetsToSave.isEmpty) return false;
 
     final endTime = DateTime.now();
     final routineName = state.routine?.name ?? state.title;
 
-    // Acessa o repositório nativamente com ref.read para salvar o Histórico
     await ref.read(databaseRepositoryProvider).saveWorkout(
       routineName,
       state.startTime!,
@@ -188,14 +240,12 @@ class ActiveWorkoutSessionNotifier extends Notifier<ActiveWorkoutSession> {
       allSetsToSave,
     );
 
-    // Salva a nova lista de exercícios na rotina original (caso tenha editado)
     if (state.routine != null) {
       final exerciseIds = state.exercises.map((e) => e.id!).toList();
       await ref.read(databaseRepositoryProvider).updateRoutineExercises(state.routine!.id!, exerciseIds);
     }
 
-    // Limpa a tela de treino ativo:
-    discardWorkout(); 
+    discardWorkout();
     return true;
   }
 }
