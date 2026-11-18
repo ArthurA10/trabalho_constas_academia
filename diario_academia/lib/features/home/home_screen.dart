@@ -18,7 +18,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Diário de Academia'),
+        title: const Text('Solid Workout'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
