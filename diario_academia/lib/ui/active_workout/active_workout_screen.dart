@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../core/theme/app_theme.dart';
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/rest_timer_provider.dart';
@@ -8,6 +8,7 @@ import '../../providers/active_workout_session_provider.dart';
 import '../widgets/rest_timer_widget.dart';
 import '../../providers/settings_provider.dart';
 import '../../ui/routines/select_exercise_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
   final Routine routine;
@@ -285,154 +286,167 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   // LISTA DE SÉRIES
                   ...List.generate(sets.length, (setIndex) {
                     final currentSet = sets[setIndex];
+                    final isCompleted = currentSet.isCompleted == 1;
+                    // Feedback visual: escurecer sutilmente a linha se a série estiver concluída
+                    final rowOpacity = isCompleted ? 0.5 : 1.0;
+                    
+                    // Verifica a categoria direto da variável 'ex' criada no topo do Card
+                    final isCardio = ex.category == 'cardio';
+
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            child: Text(
-                              '${setIndex + 1}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                      key: ObjectKey(currentSet),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: rowOpacity,
+                        child: Row(
+                          children: [
+                            // Indicador de Série (Estilo Tag)
+                            Container(
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppTheme.bgSecondary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${setIndex + 1}',
+                                style: GoogleFonts.manrope(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textSecondary),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
 
-                          // CAMPO PESO
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
+                            // Campo de Peso/Distância
+                            Expanded(
                               child: TextFormField(
                                 initialValue: currentSet.weight == 0
                                     ? ''
                                     : currentSet.weight.toString(),
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.zero,
+                                style: GoogleFonts.manrope(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textMain),
+                                decoration: InputDecoration(
+                                  hintText: isCardio ? 'km' : pesoLabel, // Usa kg ou lbs
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  fillColor: AppTheme.bgSecondary,
                                 ),
                                 onChanged: (val) => ref
                                     .read(activeWorkoutSessionProvider.notifier)
-                                    .updateSet(
-                                      ex.id!,
-                                      setIndex,
-                                      double.tryParse(val) ?? 0,
-                                      currentSet.reps,
-                                      currentSet.isCompleted == 1,
-                                    ),
+                                    .updateSet(ex.id!, setIndex,
+                                        double.tryParse(val) ?? 0, currentSet.reps, isCompleted),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
 
-                          // CAMPO REPETIÇÕES
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
+                            // Campo de Reps/Tempo
+                            Expanded(
                               child: TextFormField(
                                 initialValue: currentSet.reps == 0
                                     ? ''
                                     : currentSet.reps.toString(),
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.zero,
+                                style: GoogleFonts.manrope(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textMain),
+                                decoration: InputDecoration(
+                                  hintText: isCardio ? 'min' : 'reps',
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  fillColor: AppTheme.bgSecondary,
                                 ),
                                 onChanged: (val) => ref
                                     .read(activeWorkoutSessionProvider.notifier)
-                                    .updateSet(
-                                      ex.id!,
-                                      setIndex,
-                                      currentSet.weight,
-                                      int.tryParse(val) ?? 0,
-                                      currentSet.isCompleted == 1,
-                                    ),
+                                    .updateSet(ex.id!, setIndex,
+                                        currentSet.weight, int.tryParse(val) ?? 0, isCompleted),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
 
-                          // LIXEIRA DA SÉRIE
-                          if (currentSet.isCompleted == 0)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.remove_circle_outline,
-                                color: Colors.red,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              constraints: const BoxConstraints(),
-                              onPressed: () {
-                                ref
-                                    .read(activeWorkoutSessionProvider.notifier)
-                                    .removeSet(ex.id!, setIndex);
-                              },
-                            ),
+                            // Botão de Conclusão Customizado (Substitui o Checkbox padrão)
+                            GestureDetector(
+                              onTap: () {
+                                final isNowCompleted = !isCompleted;
 
-                          // CHECKBOX DA SÉRIE
-                          SizedBox(
-                            width: 48,
-                            child: Checkbox(
-                              value: currentSet.isCompleted == 1,
-                              onChanged: (val) {
-                                if (val == true) {
-                                  if (currentSet.weight <= 0 ||
-                                      currentSet.reps <= 0) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Preencha o peso e as repetições antes de concluir a série!',
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        margin: EdgeInsets.only(
-                                          bottom: 10,
-                                          left: 16,
-                                          right: 16,
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  final tempoPadrao = ref
-                                      .read(settingsProvider)
-                                      .defaultRestTime;
-                                  ref
-                                      .read(restTimerProvider.notifier)
-                                      .startTimer(
-                                        tempoPadrao,
-                                        exerciseName: ex.name,
-                                      );
+                                // Atualiza a série para completada (ou desmarca)
+                                ref.read(activeWorkoutSessionProvider.notifier).updateSet(
+                                  ex.id!,
+                                  setIndex,
+                                  currentSet.weight,
+                                  currentSet.reps,
+                                  isNowCompleted,
+                                );
+
+                                // Só inicia o cronômetro se marcou como completa
+                                if (isNowCompleted) {
+                                  ref.read(restTimerProvider.notifier).startTimer(60); 
                                 }
-                                ref
-                                    .read(activeWorkoutSessionProvider.notifier)
-                                    .updateSet(
-                                      ex.id!,
-                                      setIndex,
-                                      currentSet.weight,
-                                      currentSet.reps,
-                                      val == true,
-                                    );
                               },
-                              activeColor: Colors.green,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: isCompleted
+                                      ? AppTheme.success
+                                      : AppTheme.surfaceElevated,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: isCompleted
+                                      ? null
+                                      : Border.all(
+                                          color: AppTheme.textSecondary
+                                              .withOpacity(0.2)),
+                                ),
+                                child: Icon(
+                                  Icons.check_rounded,
+                                  color: isCompleted
+                                      ? AppTheme.bgMain
+                                      : AppTheme.textSecondary,
+                                  size: 24,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+
+                            // Lixeira minimalista
+                            if (!isCompleted)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: IconButton(
+                                  icon: const Icon(
+                                      Icons.remove_circle_outline_rounded),
+                                  color: AppTheme.danger.withOpacity(0.7),
+                                  splashRadius: 24,
+                                  onPressed: () => ref
+                                      .read(activeWorkoutSessionProvider.notifier)
+                                      .removeSet(ex.id!, setIndex),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   }),
-                  TextButton.icon(
-                    onPressed: () => ref
-                        .read(activeWorkoutSessionProvider.notifier)
-                        .addSet(ex.id!),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Adicionar Série'),
+                  
+                  // BOTÃO "ADICIONAR SÉRIE" LOGO ABAIXO DA LISTA
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Adicionar Série'),
+                      onPressed: () {
+                        ref
+                            .read(activeWorkoutSessionProvider.notifier)
+                            .addSet(ex.id!);
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -440,6 +454,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           );
         },
       ),
+      
+      // CRONÔMETRO FLUTUANTE NA BASE DA TELA
       bottomNavigationBar: const RestTimerWidget(),
     );
   }
