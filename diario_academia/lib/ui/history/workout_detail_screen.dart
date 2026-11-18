@@ -3,117 +3,78 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../data/models.dart';
 import '../../providers/app_providers.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_theme.dart';
 
 class WorkoutDetailScreen extends ConsumerWidget {
   final Workout workout;
   const WorkoutDetailScreen({super.key, required this.workout});
 
   @override
-  // CORREÇÃO: Adicionado o 'WidgetRef ref' aqui!
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: AppTheme.bgMain,
-      appBar: AppBar(
-        title: const Text('Resumo do Treino'),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.success.withOpacity(0.1),
-              ),
-              child: const Icon(
-                Icons.emoji_events_rounded,
-                size: 64,
-                color: AppTheme.success,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Treino Concluído!',
-              style: GoogleFonts.manrope(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textMain,
-              ),
-            ),
-            const SizedBox(height: 40),
-            
-            // Grid de Estatísticas Premium
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatPanel(
-                    'Duração', 
-                    // Se o seu model usar apenas "duration", mude aqui para workout.duration
-                    '${workout.durationMinutes} min', 
-                    Icons.timer_rounded,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatPanel(
-                    'Volume', 
-                    '${workout.totalVolume} kg', 
-                    Icons.fitness_center_rounded,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildStatPanel(
-              'Séries Concluídas', 
-              '${workout.completedSets} séries', 
-              Icons.check_circle_rounded,
-              isFullWidth: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
-  Widget _buildStatPanel(String label, String value, IconData icon, {bool isFullWidth = false}) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.surfaceElevated),
-      ),
-      child: Column(
-        crossAxisAlignment: isFullWidth ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppTheme.primary, size: 28),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.manrope(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textMain,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ],
+    return Scaffold(
+      appBar: AppBar(title: Text(workout.name)),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: ref.read(databaseRepositoryProvider).getWorkoutSetsWithExercises(workout.id!),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('Nenhum dado encontrado para este treino.'));
+          }
+
+          final sets = snapshot.data!;
+          // Agrupar as séries por nome do exercício
+          final Map<String, List<Map<String, dynamic>>> groupedSets = {};
+          for (var row in sets) {
+            
+          // Tenta ler primeiro a "fotografia" do nome (snapshot). 
+          // Se for um treino antigo (antes da atualização), usa o fallback do JOIN[cite: 1].
+          final exName = (row['exerciseNameSnapshot'] as String?) ?? (row['exerciseName'] as String?) ?? 'Exercício Excluído';
+            if (!groupedSets.containsKey(exName)) groupedSets[exName] = [];
+            groupedSets[exName]!.add(row);
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text('Início: ${dateFormat.format(workout.startTime)}', style: const TextStyle(fontSize: 16)),
+              if (workout.endTime != null)
+                Text('Fim: ${dateFormat.format(workout.endTime!)}', style: const TextStyle(fontSize: 16)),
+              const Divider(height: 32),
+              ...groupedSets.entries.map((entry) {
+                final exName = entry.key;
+                final exSets = entry.value;
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(exName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        ...exSets.map((s) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('${s['weight']} kg', style: const TextStyle(fontSize: 16)),
+                                  Text('${s['reps']} reps', style: const TextStyle(fontSize: 16)),
+                                  Icon(s['isCompleted'] == 1 ? Icons.check_circle : Icons.radio_button_unchecked,
+                                      color: s['isCompleted'] == 1 ? Colors.green : Colors.grey, size: 20),
+                                ],
+                              ),
+                            )),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
       ),
     );
   }
