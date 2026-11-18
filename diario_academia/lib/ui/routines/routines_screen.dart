@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
 import 'create_routine_screen.dart';
 import '../active_workout/active_workout_screen.dart';
@@ -43,6 +44,7 @@ class RoutinesScreen extends ConsumerWidget {
             );
           }
           return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 88),
             itemCount: routines.length,
             itemBuilder: (context, index) {
               final routine = routines[index];
@@ -50,7 +52,11 @@ class RoutinesScreen extends ConsumerWidget {
                 key: Key(routine.id.toString()),
                 direction: DismissDirection.endToStart,
                 background: Container(
-                  color: Colors.red,
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
                   child: const Icon(Icons.delete, color: Colors.white),
@@ -64,17 +70,28 @@ class RoutinesScreen extends ConsumerWidget {
                 },
                 child: Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  clipBehavior: Clip.antiAlias,
                   child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    title: Text(routine.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    trailing: const Icon(Icons.chevron_right),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    leading: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.fitness_center, color: AppTheme.primary),
+                    ),
+                    title: Text(routine.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                    subtitle: Text('Toque para iniciar', style: TextStyle(color: Colors.grey.shade500)),
+                    trailing: const Icon(Icons.play_circle_fill_rounded, color: AppTheme.primary, size: 32),
                     onTap: () async {
                       // 1. Busca os exercícios da rotina escolhida
                       final exercises = await ref.read(databaseRepositoryProvider).getExercisesForRoutine(routine.id!);
-                      
+
                       // 2. Avisa a memória global para iniciar a rotina
                       ref.read(activeWorkoutSessionProvider.notifier).startRoutineWorkout(routine, exercises);
-                      
+
                       // 3. Só depois abre a tela de treino
                       if (context.mounted) {
                         Navigator.push(

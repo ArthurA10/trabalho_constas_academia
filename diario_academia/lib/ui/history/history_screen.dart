@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
 import 'workout_detail_screen.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
+
+  static const List<String> _meses = [
+    'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+    'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,17 +32,35 @@ class HistoryScreen extends ConsumerWidget {
       body: historyAsync.when(
         data: (workouts) {
           if (workouts.isEmpty) {
-            return const Center(child: Text('Nenhum treino finalizado ainda.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history, size: 64, color: Colors.grey.shade700),
+                  const SizedBox(height: 16),
+                  const Text('Nenhum treino finalizado ainda.', style: TextStyle(fontSize: 16)),
+                ],
+              ),
+            );
           }
           return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 24),
             itemCount: workouts.length,
             itemBuilder: (context, index) {
               final workout = workouts[index];
+              final end = workout.endTime;
+              final durationText = end != null
+                  ? '  •  ${end.difference(workout.startTime).inMinutes} min'
+                  : '';
               return Dismissible(
                 key: Key(workout.id.toString()),
                 direction: DismissDirection.endToStart,
                 background: Container(
-                  color: Colors.red,
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
                   child: const Icon(Icons.delete, color: Colors.white),
@@ -51,9 +75,35 @@ class HistoryScreen extends ConsumerWidget {
                 },
                 child: Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  clipBehavior: Clip.antiAlias,
                   child: ListTile(
-                    title: Text(workout.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(dateFormat.format(workout.startTime)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Container(
+                      width: 48,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            workout.startTime.day.toString().padLeft(2, '0'),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1),
+                          ),
+                          Text(
+                            _meses[workout.startTime.month - 1],
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    title: Text(workout.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(
+                      '${dateFormat.format(workout.startTime)}$durationText',
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(
