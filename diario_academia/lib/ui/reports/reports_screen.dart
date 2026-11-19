@@ -130,10 +130,32 @@ class ReportsScreen extends ConsumerWidget {
 
                       return LineChart(
                         LineChartData(
-                          minY: minWeight - 2, // Dá 2kg de folga para baixo (evita vazar a borda)
-                          maxY: maxWeight + 2, // Dá 2kg de folga para cima
+                          minY: (minWeight - 2).floorToDouble(), // Dá 2kg de folga para baixo (evita vazar a borda) e arredonda
+                          maxY: (maxWeight + 2).floorToDouble(), // Dá 2kg de folga para cima
                           gridData: const FlGridData(show: false),
                           titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 50,
+                                interval: 1, // Pode manter 1 para peso, fica com bom espaçamento
+                                getTitlesWidget: (value, meta) {
+                                  // O PULO DO GATO: Se o valor for a exata borda superior ou inferior,
+                                  // nós o escondemos. Isso impede que ele se sobreponha aos números do intervalo!
+                                  if (value == meta.max || value == meta.min) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  
+                                  // Garante que só mostre números inteiros
+                                  if (value % 1 != 0) return const SizedBox.shrink();
+
+                                  return Text(
+                                    value.toInt().toString(),
+                                    style: const TextStyle(fontSize: 10),
+                                  );
+                                },
+                              )
+                            ),
                             topTitles: const AxisTitles(
                               sideTitles: SideTitles(showTitles: false),
                             ),
@@ -248,6 +270,25 @@ class ReportsScreen extends ConsumerWidget {
                           maxY: maxVolume + safePadding, // Folga para cima
                           gridData: const FlGridData(show: false),
                           titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 50, // Aumenta o espaço lateral (resolve a quebra de linha)
+                                getTitlesWidget: (value, meta) {
+                                  // Opcional: Arredonda o valor para ficar mais limpo (ex: 9.5K em vez de 9.52K)
+                                  if (value >= 1000) {
+                                    return Text(
+                                      '${(value / 1000).toStringAsFixed(1)}K',
+                                      style: const TextStyle(fontSize: 10),
+                                    );
+                                  }
+                                  return Text(
+                                    value.toStringAsFixed(0),
+                                    style: const TextStyle(fontSize: 10),
+                                  );
+                                },
+                              ),
+                            ),
                             topTitles: const AxisTitles(
                               sideTitles: SideTitles(showTitles: false),
                             ),

@@ -1,8 +1,6 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../data/models.dart';
 import '../../data/database_helper.dart';
 import '../../providers/app_providers.dart';
@@ -80,6 +78,7 @@ class SelectExerciseScreen extends ConsumerWidget {
       'Panturrilha',
       'Antebraço',
       'Abdômen',
+      'Cardio'
     ];
 
     return Scaffold(
